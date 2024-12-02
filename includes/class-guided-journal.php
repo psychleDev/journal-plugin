@@ -295,6 +295,13 @@ class GuidedJournal {
     }
     
     private function get_prompt($day) {
+
+        // Joe
+        $prompts = [
+            1 => "",
+            2 => "",
+            // to 30
+        ];
         $args = [
             'post_type' => 'journal_prompt',
             // 'meta_key' => 'day_number',
