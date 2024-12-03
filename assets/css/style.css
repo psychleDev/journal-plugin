@@ -177,6 +177,11 @@ body {
         align-items: center;
     }
     
+    .entry-item a{
+        text-decoration: none;
+        color: #ffffff;
+    }
+
     .entry-item:last-child {
         border-bottom: none;
     }

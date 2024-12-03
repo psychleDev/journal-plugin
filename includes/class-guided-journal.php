@@ -250,11 +250,19 @@ class GuidedJournal {
         ob_start();
         ?>
         <div class="container">
-            <div class="navigation-top">
-                <a href="<?php echo remove_query_arg('day'); ?>" class="contents-toggle">
+            <div class="navigation-top">    
+                <a href="http://ignite30.local/grid" class="contents-toggle"> <!-- This is the BACK TO GRID BUTTON -->
+                    <?php _e('Back to Grid'); ?>
+                </a>
+            </div>
+
+<!-- This is the original code with php
+            <div class="navigation-top">    
+                <a href="<?php echo remove_query_arg('day'); ?>" class="contents-toggle"> 
                     <?php _e('Back to Grid', 'guided-journal'); ?>
                 </a>
             </div>
+ -->
             
             <div class="journal-container">
                 <h2><?php printf(__('Day %d', 'guided-journal'), $day); ?></h2>
