@@ -37,7 +37,109 @@ class GuidedJournal {
         // Register AJAX handlers
         add_action('wp_ajax_save_journal_entry', [$this, 'save_entry']);
         add_action('wp_ajax_get_journal_entries', [$this, 'get_entries']);
+
+        // Journal role and page protection
+        // Create the journal role on plugin activation
+        register_activation_hook(__FILE__, function() {
+            // Remove the role first in case it exists with incorrect capabilities
+            remove_role('journal');
+            
+            // Create the journal role with explicit capabilities
+            add_role('journal', 'Journal Member', [
+                'read' => true,                   // Can read posts
+                'edit_posts' => false,            // Cannot edit posts
+                'delete_posts' => false,          // Cannot delete posts
+                'publish_posts' => false,         // Cannot publish posts
+                'upload_files' => false,          // Cannot upload files
+                'level_0' => true,               // Basic subscriber level
+                'view_journal' => true           // Custom capability for journal access
+            ]);
+        });
+
+        // Update existing role capabilities (run this after role creation or when needed)
+        add_action('init', function() {
+            $role = get_role('journal');
+            if ($role) {
+                $role->add_cap('read', true);
+                $role->add_cap('level_0', true);
+                $role->add_cap('view_journal', true);
+            }
+        });
+
+        // Make sure the role is properly registered for the dropdown
+        add_filter('editable_roles', function($roles) {
+            if (!isset($roles['journal'])) {
+                $journal_role = get_role('journal');
+                if ($journal_role) {
+                    $roles['journal'] = [
+                        'name' => 'Journal Member',
+                        'capabilities' => $journal_role->capabilities
+                    ];
+                }
+            }
+            return $roles;
+        });
+
+
+        // Make new users get the journal role by default
+        add_action('user_register', function($user_id) {
+            $user = new WP_User($user_id);
+            $user->set_role('journal');
+        });
+
+        
+        // Add meta box to pages for role restriction
+        add_action('add_meta_boxes', function() {
+            add_meta_box(
+                'journal_access_restriction',
+                'Journal Access',
+                function($post) {
+                    $restricted = get_post_meta($post->ID, '_journal_restricted', true);
+                    ?>
+                    <label>
+                        <input type="checkbox" name="journal_restricted" value="1" <?php checked($restricted, '1'); ?>>
+                        Restrict to Journal Members Only
+                    </label>
+                    <?php
+                    wp_nonce_field('journal_access_nonce', 'journal_access_nonce');
+                },
+                'page'
+            );
+        });
+
+        // Save the restriction setting
+        add_action('save_post', function($post_id) {
+            if (!isset($_POST['journal_access_nonce']) || 
+                !wp_verify_nonce($_POST['journal_access_nonce'], 'journal_access_nonce')) {
+                return;
+            }
+            
+            $restricted = isset($_POST['journal_restricted']) ? '1' : '0';
+            update_post_meta($post_id, '_journal_restricted', $restricted);
+        });
+
+        // Check access restrictions
+        add_action('template_redirect', function() {
+            if (is_page()) {
+                $restricted = get_post_meta(get_the_ID(), '_journal_restricted', true);
+                if ($restricted == '1') {
+                    $user = wp_get_current_user();
+                    if (!in_array('journal', (array) $user->roles)) {
+                        wp_redirect(home_url('/login'));
+                        exit;
+                    }
+                }
+            }
+        });
+
+        // Clean up on plugin deactivation
+        register_deactivation_hook(__FILE__, function() {
+            // Remove the role
+            remove_role('journal');
+        });
+        
     }
+
 
     public function load_journal_templates($template) {
         if (is_singular('journal_prompt')) {

@@ -18,6 +18,8 @@ define('GUIDED_JOURNAL_PLUGIN_URL', plugin_dir_url(__FILE__));
 // Include the main class files directly
 require_once GUIDED_JOURNAL_PLUGIN_DIR . 'includes/class-guided-journal.php';
 require_once GUIDED_JOURNAL_PLUGIN_DIR . 'includes/class-circle-sso.php';
+// Initialize the roles management
+require_once GUIDED_JOURNAL_PLUGIN_DIR . 'includes/class-journal-roles.php';
 
 // Initialize plugin
 function guided_journal_init() {
