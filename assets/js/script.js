@@ -1,7 +1,8 @@
 jQuery(document).ready(function($) {
     // Save entry handler
     $('.save-entry').on('click', function() {
-        const day = new URLSearchParams(window.location.search).get('day') || 1;
+        const currentPath = window.location.pathname;
+        const day = parseInt(currentPath.split('/').filter(Boolean).pop()) || 1;
         const text = $('#journal-entry').val();
         
         $.ajax({
@@ -26,18 +27,23 @@ jQuery(document).ready(function($) {
     // Navigation handlers
     $('.prev-day').on('click', function() {
         if (!$(this).prop('disabled')) {
-            const day = parseInt(new URLSearchParams(window.location.search).get('day')) || 1;
+            // Get the current path and extract the last segment (the number)
+            const currentPath = window.location.pathname;
+            const day = parseInt(currentPath.split('/').filter(Boolean).pop()) || 1;
             if (day > 1) {
-                window.location.href = `?day=${day - 1}`;
+                // Navigate to the previous number in the path
+                window.location.href = `../${day - 1}`;
             }
         }
     });
     
     $('.next-day').on('click', function() {
         if (!$(this).prop('disabled')) {
-            const day = parseInt(new URLSearchParams(window.location.search).get('day')) || 1;
+            const currentPath = window.location.pathname;
+            const day = parseInt(currentPath.split('/').filter(Boolean).pop()) || 1;
             if (day < 30) {
-                window.location.href = `?day=${day + 1}`;
+                // Navigate to the next number in the path
+                window.location.href = `../${day + 1}`;
             }
         }
     });

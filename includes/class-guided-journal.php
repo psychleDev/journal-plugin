@@ -241,7 +241,15 @@ class GuidedJournal {
             return $this->sso->render_login_button();
         }
         
-        $day = get_query_var('journal_prompt') ? get_query_var('journal_prompt') : 1;
+
+        // Method 3: Parse from URL path
+        $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+        $slug = basename($path); // Gets the last part of the path
+
+        // If you need just the number from "day-1":
+        $day = str_replace('day-', '', $slug); // Gets '1'
+
+        // $day = get_query_var('journal_prompt') ? get_query_var('journal_prompt') : 1;
         $day = max(1, min(30, $day)); // Ensure day is between 1 and 30
         
         $prompt = $this->get_prompt($day);
@@ -263,9 +271,10 @@ class GuidedJournal {
                 </a>
             </div>
  -->
-            
+
             <div class="journal-container">
                 <h2><?php printf(__('Day %d', 'guided-journal'), $day); ?></h2>
+                
                 <div class="prompt"><?php echo wp_kses_post($prompt); ?></div>
                 
                 <textarea id="journal-entry" class="entry-text"><?php echo esc_textarea($entry); ?></textarea>
@@ -282,13 +291,13 @@ class GuidedJournal {
                     </button>
                 </div>
                 
-                <div class="view-entries">
+                <!-- <div class="view-entries">
                     <button class="list-toggle">
-                        <?php _e('View All Entries', 'guided-journal'); ?>
+                        <?php // _e('View All Entries', 'guided-journal'); ?>
                     </button>
                 </div>
                 
-                <div class="entries-list"></div>
+                <div class="entries-list"></div> -->
             </div>
         </div>
         <?php
@@ -305,11 +314,7 @@ class GuidedJournal {
     private function get_prompt($day) {
 
         // Joe
-        $prompts = [
-            1 => "",
-            2 => "",
-            // to 30
-        ];
+       
         $args = [
             'post_type' => 'journal_prompt',
             // 'meta_key' => 'day_number',
@@ -317,8 +322,9 @@ class GuidedJournal {
             'posts_per_page' => 1
         ];
         
-        $prompt = get_posts($args);
-        return $prompt ? apply_filters( 'the_content', $prompt[0]->post_content ) : sprintf(__('Prompt for day %d', 'guided-journal'), $day);
+        // $prompt = get_posts($args);
+        $prompt = get_page_by_path($day, OBJECT, 'journal_prompt');
+        return $prompt ? apply_filters( 'the_content', $prompt->post_content ) : sprintf(__('Prompt for day %d', 'guided-journal'), $day);
     }
     
     private function get_entry($user_id, $day) {
@@ -353,15 +359,39 @@ class GuidedJournal {
         $text = sanitize_textarea_field($_POST['text']);
         
         global $wpdb;
-        $result = $wpdb->replace(
-            $wpdb->prefix . 'journal_entries',
-            [
-                'user_id' => $user_id,
-                'day_number' => $day,
-                'entry_text' => $text
-            ],
-            ['%d', '%d', '%s']
-        );
+        $table = $wpdb->prefix . 'journal_entries';
+    
+        // Check if entry exists
+        $existing_entry = $wpdb->get_row($wpdb->prepare(
+            "SELECT id FROM {$table} WHERE user_id = %d AND day_number = %d",
+            $user_id,
+            $day
+        ));
+    
+        if ($existing_entry) {
+            // Update existing entry
+            $result = $wpdb->update(
+                $table,
+                ['entry_text' => $text],
+                [
+                    'user_id' => $user_id,
+                    'day_number' => $day
+                ],
+                ['%s'],
+                ['%d', '%d']
+            );
+        } else {
+            // Insert new entry
+            $result = $wpdb->insert(
+                $table,
+                [
+                    'user_id' => $user_id,
+                    'day_number' => $day,
+                    'entry_text' => $text
+                ],
+                ['%d', '%d', '%s']
+            );
+        }
         
         if ($result === false) {
             wp_send_json_error(__('Failed to save entry', 'guided-journal'));
