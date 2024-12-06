@@ -101,6 +101,7 @@ body {
         border-left: 4px solid #8e1010;
         padding: 15px;
         margin-bottom: 20px;
+        color:#000000;
         font-style: italic;
         border-radius: 0 5px 5px 0;
     }
@@ -152,6 +153,38 @@ body {
         opacity: 0.6;
     }
     
+    /* logging button styles */
+.auth-button-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1000;
+}
+
+.auth-button {
+    display: inline-block;
+    padding: 10px 20px;
+    border-radius: 5px;
+    text-decoration: none;
+    font-weight: bold;
+    text-transform: uppercase;
+    transition: background-color 0.3s;
+}
+
+.auth-button.login {
+    background-color: #8e1010;
+    color: white;
+}
+
+.auth-button.logout {
+    background-color: #8e1010;
+    color: white;
+}
+
+.auth-button:hover {
+    opacity: 0.9;
+}
+
     /* Entries List */
     .entries-list {
         background-color: rgb(42, 42, 42);
