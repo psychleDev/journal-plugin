@@ -294,9 +294,14 @@ class GuidedJournal {
     }
     
     public function save_entry() {
+        // Verify AJAX nonce
         check_ajax_referer('journal_nonce', 'nonce');
         
-        if (!$this->check_auth()) {
+        // Get current user
+        $user = wp_get_current_user();
+        
+        // Check if user has journal or admin role
+        if (!in_array('journal', $user->roles) && !in_array('administrator', $user->roles)) {
             wp_send_json_error(__('Unauthorized access', 'guided-journal'));
         }
         
