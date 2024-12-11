@@ -6,12 +6,10 @@ use \WP_Query;
 class GuidedJournal {
     private $plugin_path;
     private $test_mode;
-    private $sso;
     
     public function __construct() {
         $this->plugin_path = GUIDED_JOURNAL_PLUGIN_DIR;
         $this->test_mode = get_option('guided_journal_test_mode', true);
-        $this->sso = new CircleSSO();
     }
     
     public function init() {
@@ -115,20 +113,15 @@ class GuidedJournal {
     }
     
     public function add_admin_menu() {
-        add_options_page(
-            __('Journal Settings', 'guided-journal'),
-            __('Journal Settings', 'guided-journal'),
-            'manage_options',
-            'guided-journal-settings',
-            [$this, 'render_settings_page']
-        );
+        // add_options_page(
+        //     __('Journal Settings', 'guided-journal'),
+        //     __('Journal Settings', 'guided-journal'),
+        //     'manage_options',
+        //     'guided-journal-settings',
+        //     [$this, 'render_settings_page']
+        // );
     }
     
-    public function register_settings() {
-        register_setting('guided_journal_options', 'guided_journal_test_mode');
-        register_setting('guided_journal_options', 'guided_journal_circle_sso_key');
-        register_setting('guided_journal_options', 'guided_journal_circle_domain');
-    }
     
     public function enqueue_assets() {
         wp_enqueue_style(
@@ -152,55 +145,10 @@ class GuidedJournal {
         ]);
     }
     
-    public function render_settings_page() {
-        if (!current_user_can('manage_options')) {
-            return;
-        }
-        ?>
-        <div class="wrap">
-            <h1><?php echo esc_html(get_admin_page_title()); ?></h1>
-            <form action="options.php" method="post">
-                <?php
-                settings_fields('guided_journal_options');
-                do_settings_sections('guided_journal_options');
-                ?>
-                <table class="form-table">
-                    <tr>
-                        <th scope="row"><?php _e('Test Mode', 'guided-journal'); ?></th>
-                        <td>
-                            <input type="checkbox" name="guided_journal_test_mode" value="1" 
-                                <?php checked(get_option('guided_journal_test_mode')); ?>>
-                            <p class="description"><?php _e('Enable test mode to bypass SSO authentication', 'guided-journal'); ?></p>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th scope="row"><?php _e('Circle SSO Key', 'guided-journal'); ?></th>
-                        <td>
-                            <input type="text" name="guided_journal_circle_sso_key" 
-                                   value="<?php echo esc_attr(get_option('guided_journal_circle_sso_key')); ?>"
-                                   class="regular-text">
-                        </td>
-                    </tr>
-                    <tr>
-                        <th scope="row"><?php _e('Circle Domain', 'guided-journal'); ?></th>
-                        <td>
-                            <input type="text" name="guided_journal_circle_domain" 
-                                   value="<?php echo esc_attr(get_option('guided_journal_circle_domain')); ?>"
-                                   class="regular-text">
-                            <p class="description"><?php _e('Enter your Circle community domain (e.g., community.yourdomain.com)', 'guided-journal'); ?></p>
-                        </td>
-                    </tr>
-                </table>
-                <?php submit_button(); ?>
-            </form>
-        </div>
-        <?php
-    }
+    
     
     public function render_grid($atts) {
-        if (!$this->check_auth()) {
-            return $this->sso->render_login_button();
-        }
+      
         
         ob_start();
         ?>
@@ -241,9 +189,7 @@ class GuidedJournal {
     
     // Joe: HTML for the Entry FORM
     public function render_entry_page($atts) {
-        if (!$this->check_auth()) {
-            return $this->sso->render_login_button();
-        }
+   
         
 
         // Method 3: Parse from URL path
@@ -263,7 +209,7 @@ class GuidedJournal {
         ?>
         <div class="container">
             <div class="navigation-top">    
-                <a href="http://ignite30.local/grid" class="contents-toggle"> <!-- This is the BACK TO GRID BUTTON -->
+                <a href="http://journal.ignite30.co/grid" class="contents-toggle"> <!-- This is the BACK TO GRID BUTTON -->
                     <?php _e('Back to Grid'); ?>
                 </a>
             </div>
@@ -309,10 +255,7 @@ class GuidedJournal {
     }
     
     private function check_auth() {
-        if ($this->test_mode) {
-            return true;
-        }
-        return $this->sso->verify_user_access();
+        return is_user_logged_in();
     }
     
     private function get_prompt($day) {
