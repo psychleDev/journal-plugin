@@ -212,7 +212,6 @@ class GuidedJournal {
                     <?php _e('Back to Grid', 'guided-journal'); ?>
                 </a>
             </div>
- -->
 
             <div class="journal-container">
                 <h2><?php printf(__('Day %d', 'guided-journal'), $day); ?></h2>
