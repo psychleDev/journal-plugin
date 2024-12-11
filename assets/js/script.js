@@ -84,29 +84,5 @@ jQuery(document).ready(function($) {
         });
     });
     
-    // Handle Circle SSO token from URL
-    const urlParams = new URLSearchParams(window.location.search);
-    const circleToken = urlParams.get('circle_token');
-    
-    if (circleToken) {
-        // Remove token from URL
-        const newUrl = window.location.href.replace(/[?&]circle_token=[^&#]*/g, '');
-        window.history.replaceState({}, document.title, newUrl);
-        
-        // Verify token with server
-        $.ajax({
-            url: journalAjax.ajaxurl,
-            type: 'POST',
-            data: {
-                action: 'verify_circle_token',
-                token: circleToken,
-                nonce: journalAjax.nonce
-            },
-            success: function(response) {
-                if (response.success) {
-                    window.location.reload();
-                }
-            }
-        });
-    }
+   
 });

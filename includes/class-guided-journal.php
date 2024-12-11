@@ -22,8 +22,7 @@ class GuidedJournal {
         // Add admin menu
         add_action('admin_menu', [$this, 'add_admin_menu']);
         
-        // Register settings
-        add_action('admin_init', [$this, 'register_settings']);
+
         
         // Register shortcodes
         add_shortcode('journal_grid', [$this, 'render_grid']);

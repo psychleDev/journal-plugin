@@ -268,28 +268,7 @@ html {
         margin-top: 20px;
     }
     
-    /* Circle Login Button */
-    .circle-login-button {
-        display: inline-block;
-        padding: 12px 24px;
-        background-color: #8e1010;
-        color: white;
-        text-decoration: none;
-        border-radius: 5px;
-        font-weight: 600;
-        text-transform: uppercase;
-        transition: background-color 0.3s ease;
-        text-align: center;
-        margin: 40px auto;
-        max-width: 200px;
-    }
-    
-    .circle-login-button:hover {
-        background-color: #6e0c0c;
-        color: white;
-        text-decoration: none;
-    }
-    
+   
     /* Scrollbar Styling */
     .entries-list::-webkit-scrollbar {
         width: 8px;

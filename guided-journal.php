@@ -17,7 +17,6 @@ define('GUIDED_JOURNAL_PLUGIN_URL', plugin_dir_url(__FILE__));
 
 // Include the main class files directly
 require_once GUIDED_JOURNAL_PLUGIN_DIR . 'includes/class-guided-journal.php';
-require_once GUIDED_JOURNAL_PLUGIN_DIR . 'includes/class-circle-sso.php';
 // Initialize the roles management
 require_once GUIDED_JOURNAL_PLUGIN_DIR . 'includes/class-journal-roles.php';
 
@@ -61,10 +60,7 @@ function guided_journal_activate() {
     dbDelta($sql);
     
     // Set default options
-    add_option('guided_journal_test_mode', true);
-    add_option('guided_journal_circle_sso_key', '');
-    add_option('guided_journal_circle_domain', '');
-    
+   
     // Clean up rewrite rules
     flush_rewrite_rules();
 }
