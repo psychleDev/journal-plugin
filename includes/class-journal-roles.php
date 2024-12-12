@@ -20,23 +20,23 @@ class JournalRoles {
         add_action('save_post', [$this, 'save_restriction']);
         add_action('template_redirect', [$this, 'check_page_access']);
 
-        // Redirect journal members from wp-admin to home page
-        add_action('admin_init', function() {
-            $user = wp_get_current_user();
-            
-            // Check if user is a journal member and not an administrator
-            if (in_array('journal', (array) $user->roles) && !in_array('administrator', (array) $user->roles)) {
-                wp_redirect(home_url());
-                exit;
-            }
-        });
-
         // Hide admin bar for journal members
         add_action('after_setup_theme', function() {
             if (current_user_can('journal')) {
                 show_admin_bar(false);
             }
         });
+        
+        // Redirect journal members from wp-admin to home page
+        // add_action('admin_init', function() {
+        //     $user = wp_get_current_user();
+            
+        //     // Check if user is a journal member and not an administrator
+        //     if (in_array('journal', (array) $user->roles) && !in_array('administrator', (array) $user->roles)) {
+        //         wp_redirect(home_url());
+        //         exit;
+        //     }
+        // });
     }
 
     public function activate() {
