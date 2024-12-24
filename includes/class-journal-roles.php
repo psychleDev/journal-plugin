@@ -1,36 +1,38 @@
 <?php
-class JournalRoles {
-    public function __construct() {
+class JournalRoles
+{
+    public function __construct()
+    {
         // Register activation and deactivation hooks
         register_activation_hook(GUIDED_JOURNAL_PLUGIN_DIR . 'guided-journal.php', [$this, 'activate']);
         register_deactivation_hook(GUIDED_JOURNAL_PLUGIN_DIR . 'guided-journal.php', [$this, 'deactivate']);
-        
+
         // Add init hooks
         add_action('init', [$this, 'init_role']);
         add_action('admin_init', [$this, 'ensure_role_exists']);
-        
+
         // Add filters for role management
         add_filter('editable_roles', [$this, 'add_editable_role']);
-        
+
         // Add new user hook
-        add_action('user_register', [$this, 'set_default_role']);
-        
+        // add_action('user_register', [$this, 'set_default_role']);
+
         // Add page restriction functionality
         add_action('add_meta_boxes', [$this, 'add_restriction_meta_box']);
         add_action('save_post', [$this, 'save_restriction']);
         add_action('template_redirect', [$this, 'check_page_access']);
 
         // Hide admin bar for journal members
-        add_action('after_setup_theme', function() {
+        add_action('after_setup_theme', function () {
             if (current_user_can('journal')) {
                 show_admin_bar(false);
             }
         });
-        
+
         // Redirect journal members from wp-admin to home page
         // add_action('admin_init', function() {
         //     $user = wp_get_current_user();
-            
+
         //     // Check if user is a journal member and not an administrator
         //     if (in_array('journal', (array) $user->roles) && !in_array('administrator', (array) $user->roles)) {
         //         wp_redirect(home_url());
@@ -39,19 +41,22 @@ class JournalRoles {
         // });
     }
 
-    public function activate() {
+    public function activate()
+    {
         $this->create_journal_role();
         flush_rewrite_rules();
     }
 
-    public function deactivate() {
+    public function deactivate()
+    {
         remove_role('journal');
         flush_rewrite_rules();
     }
 
-    public function create_journal_role() {
+    public function create_journal_role()
+    {
         remove_role('journal');
-        
+
         add_role('journal', 'Journal Member', [
             'read' => true,
             'edit_posts' => false,
@@ -63,7 +68,8 @@ class JournalRoles {
         ]);
     }
 
-    public function init_role() {
+    public function init_role()
+    {
         $role = get_role('journal');
         if ($role) {
             $role->add_cap('read', true);
@@ -72,13 +78,15 @@ class JournalRoles {
         }
     }
 
-    public function ensure_role_exists() {
+    public function ensure_role_exists()
+    {
         if (!get_role('journal')) {
             $this->create_journal_role();
         }
     }
 
-    public function add_editable_role($roles) {
+    public function add_editable_role($roles)
+    {
         $journal_role = get_role('journal');
         if ($journal_role) {
             $roles['journal'] = [
@@ -89,12 +97,14 @@ class JournalRoles {
         return $roles;
     }
 
-    public function set_default_role($user_id) {
+    public function set_default_role($user_id)
+    {
         $user = new WP_User($user_id);
         $user->set_role('journal');
     }
 
-    public function add_restriction_meta_box() {
+    public function add_restriction_meta_box()
+    {
         add_meta_box(
             'journal_access_restriction',
             'Journal Access',
@@ -103,7 +113,8 @@ class JournalRoles {
         );
     }
 
-    public function render_restriction_meta_box($post) {
+    public function render_restriction_meta_box($post)
+    {
         $restricted = get_post_meta($post->ID, '_journal_restricted', true);
         ?>
         <label>
@@ -114,17 +125,21 @@ class JournalRoles {
         wp_nonce_field('journal_access_nonce', 'journal_access_nonce');
     }
 
-    public function save_restriction($post_id) {
-        if (!isset($_POST['journal_access_nonce']) || 
-            !wp_verify_nonce($_POST['journal_access_nonce'], 'journal_access_nonce')) {
+    public function save_restriction($post_id)
+    {
+        if (
+            !isset($_POST['journal_access_nonce']) ||
+            !wp_verify_nonce($_POST['journal_access_nonce'], 'journal_access_nonce')
+        ) {
             return;
         }
-        
+
         $restricted = isset($_POST['journal_restricted']) ? '1' : '0';
         update_post_meta($post_id, '_journal_restricted', $restricted);
     }
 
-    public function check_page_access() {
+    public function check_page_access()
+    {
         if (is_page()) {
             $restricted = get_post_meta(get_the_ID(), '_journal_restricted', true);
             if ($restricted == '1') {
