@@ -145,7 +145,7 @@ class JournalRoles
             if ($restricted == '1') {
                 $user = wp_get_current_user();
                 if (!in_array('journal', (array) $user->roles) && !current_user_can('administrator')) {
-                    // wp_redirect(home_url('/wp-admin'));
+                    wp_redirect(home_url('/'));
                     exit;
                 }
             }
