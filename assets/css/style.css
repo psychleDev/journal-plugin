@@ -352,6 +352,14 @@ html {
     .navigation {
         flex-direction: column;
     }
+
+    .container h1 {
+        color: #ffffff;
+        font-size: 1rem;
+        text-transform: uppercase;
+        text-align: center;
+        margin-bottom: 30px;
+    }
 }
 
 /* Responsive Design */
