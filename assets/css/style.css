@@ -67,7 +67,6 @@ html {
 /* PROMPT Grid Layout */
 .prompt-grid {
     background-color: #494949;
-    opacity: 0.7;
     border-radius: 10px;
     display: grid;
     grid-template-columns: repeat(6, 1fr);
