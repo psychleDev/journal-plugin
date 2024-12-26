@@ -113,7 +113,7 @@ html {
 
 /* Journal Container */
 .journal-container {
-    background-color: rgb(42, 42, 42);
+    background-color: #494949;
     border-radius: 10px;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     padding: 30px;
