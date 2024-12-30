@@ -352,6 +352,11 @@ class GuidedJournal
             wp_send_json_error(__('Failed to save entry', 'guided-journal'));
         }
 
+        if ($day === 30) {
+            //redirect user to success page.
+            wp_redirect(home_url('/journal-challenge-success'));
+            exit;
+        }
         wp_send_json_success(['message' => __('Entry saved successfully', 'guided-journal')]);
     }
 
