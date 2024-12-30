@@ -51,7 +51,7 @@ class GuidedJournal
             $roles = (array) $current_user->roles;
 
             // Only menoffire role can see Archive
-            if (!in_array('menoffire', $roles) && !current_user_can('administrator') && !in_array('subscribers', $roles)) {
+            if (!in_array('menoffire', $roles) && !current_user_can('administrator') && !in_array('subscriber', $roles)) {
                 wp_redirect(home_url('/'));
                 exit;
             }
