@@ -24,7 +24,7 @@ class JournalRoles
 
         // Hide admin bar for journal members
         add_action('after_setup_theme', function () {
-            if (current_user_can('journal')) {
+            if (current_user_can('menoffire')) {
                 show_admin_bar(false);
             }
         });
@@ -34,7 +34,7 @@ class JournalRoles
         //     $user = wp_get_current_user();
 
         //     // Check if user is a journal member and not an administrator
-        //     if (in_array('journal', (array) $user->roles) && !in_array('administrator', (array) $user->roles)) {
+        //     if (in_array('menoffire', (array) $user->roles) && !in_array('administrator', (array) $user->roles)) {
         //         wp_redirect(home_url());
         //         exit;
         //     }
@@ -49,15 +49,15 @@ class JournalRoles
 
     public function deactivate()
     {
-        remove_role('journal');
+        remove_role('menoffire');
         flush_rewrite_rules();
     }
 
     public function create_journal_role()
     {
-        remove_role('journal');
+        remove_role('menoffire');
 
-        add_role('journal', 'Journal Member', [
+        add_role('menoffire', 'Journal Member', [
             'read' => true,
             'edit_posts' => false,
             'delete_posts' => false,
@@ -70,7 +70,7 @@ class JournalRoles
 
     public function init_role()
     {
-        $role = get_role('journal');
+        $role = get_role('menoffire');
         if ($role) {
             $role->add_cap('read', true);
             $role->add_cap('level_0', true);
@@ -80,16 +80,16 @@ class JournalRoles
 
     public function ensure_role_exists()
     {
-        if (!get_role('journal')) {
+        if (!get_role('menoffire')) {
             $this->create_journal_role();
         }
     }
 
     public function add_editable_role($roles)
     {
-        $journal_role = get_role('journal');
+        $journal_role = get_role('menoffire');
         if ($journal_role) {
-            $roles['journal'] = [
+            $roles['menoffire'] = [
                 'name' => 'Journal Member',
                 'capabilities' => $journal_role->capabilities
             ];
@@ -100,7 +100,7 @@ class JournalRoles
     public function set_default_role($user_id)
     {
         $user = new WP_User($user_id);
-        $user->set_role('journal');
+        $user->set_role('menoffire');
     }
 
     public function add_restriction_meta_box()
@@ -144,7 +144,7 @@ class JournalRoles
             $restricted = get_post_meta(get_the_ID(), '_journal_restricted', true);
             if ($restricted == '1') {
                 $user = wp_get_current_user();
-                if (!in_array('journal', (array) $user->roles) && !current_user_can('administrator')) {
+                if (!in_array('menoffire', (array) $user->roles) && !current_user_can('administrator')) {
                     wp_redirect(home_url('/'));
                     exit;
                 }

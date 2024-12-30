@@ -38,7 +38,26 @@ class GuidedJournal
         add_action('wp_ajax_save_journal_entry', [$this, 'save_entry']);
         add_action('wp_ajax_get_journal_entries', [$this, 'get_entries']);
 
+        if (is_page('grid') || is_page('entry')) {
 
+            // If not logged in, send to login page
+            if (!is_user_logged_in()) {
+                wp_redirect(home_url('/'));
+                exit;
+            }
+
+            // Check the current user's WordPress role(s)
+            $current_user = wp_get_current_user();
+            $roles = (array) $current_user->roles;
+
+            // Only menoffire role can see Archive
+            if (!in_array('menoffire', $roles) && !current_user_can('administrator') && !in_array('subscribers', $roles)) {
+                wp_redirect(home_url('/'));
+                exit;
+            }
+
+            // If user tries to access the Journal page
+        }
 
     }
 
@@ -305,7 +324,7 @@ class GuidedJournal
         $user = wp_get_current_user();
 
         // Check if user has journal or admin role
-        // if (!in_array('journal', $user->roles) && !in_array('administrator', $user->roles)) {
+        // if (!in_array('menoffire', $user->roles) && !in_array('administrator', $user->roles)) {
         //     wp_send_json_error(__('Unauthorized access', 'guided-journal'));
         // }
 
