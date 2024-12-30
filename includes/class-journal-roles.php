@@ -117,12 +117,12 @@ class JournalRoles
     {
         $restricted = get_post_meta($post->ID, '_journal_restricted', true);
         ?>
-                <label>
-                    <input type="checkbox" name="journal_restricted" value="1" <?php checked($restricted, '1'); ?>>
-                    Restrict to Journal Members Only
-                </label>
-                <?php
-                wp_nonce_field('journal_access_nonce', 'journal_access_nonce');
+        <label>
+            <input type="checkbox" name="journal_restricted" value="1" <?php checked($restricted, '1'); ?>>
+            Restrict to Men of Fire Only
+        </label>
+        <?php
+        wp_nonce_field('journal_access_nonce', 'journal_access_nonce');
     }
 
     public function save_restriction($post_id)
