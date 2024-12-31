@@ -64,8 +64,17 @@ class JournalRoles
             'publish_posts' => false,
             'upload_files' => false,
             'level_0' => true,
-            'view_journal' => true
+            'view_journal' => true,
+            'view_archive' => true
         ]);
+
+        // Ensure subscriber role has journal access
+        $subscriber = get_role('subscriber');
+        if ($subscriber) {
+            $subscriber->add_cap('read', true);
+            $subscriber->add_cap('level_0', true);
+            $subscriber->add_cap('view_journal', true);
+        }
     }
 
     public function init_role()
