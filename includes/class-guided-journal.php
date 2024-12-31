@@ -25,6 +25,7 @@ class GuidedJournal
         add_action('wp_ajax_save_journal_entry', [$this, 'save_entry']);
         add_action('wp_ajax_get_journal_entries', [$this, 'get_entries']);
 
+        // Journal access control
         add_action('template_redirect', function () {
             global $post;
 
@@ -45,6 +46,17 @@ class GuidedJournal
 
                 if (empty($has_access)) {
                     wp_redirect(home_url('/'));
+                    exit;
+                }
+            }
+        });
+
+        // Subscriber redirect to journal
+        add_action('template_redirect', function () {
+            if (is_front_page() || is_home()) {
+                $user = wp_get_current_user();
+                if (in_array('subscriber', (array) $user->roles)) {
+                    wp_redirect(home_url('/grid'));
                     exit;
                 }
             }
