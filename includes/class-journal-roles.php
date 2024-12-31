@@ -180,7 +180,7 @@ class JournalRoles
             $restricted = get_post_meta(get_the_ID(), '_journal_restricted', true);
             if ($restricted == '1') {
                 $user = wp_get_current_user();
-                if (!in_array('menoffire', (array) $user->roles) && !current_user_can('administrator')) {
+                if (!in_array('menoffire', (array) $user->roles) && !in_array('ignite30', (array) $user->roles) && !current_user_can('administrator')) {
                     wp_redirect(home_url('/'));
                     exit;
                 }
