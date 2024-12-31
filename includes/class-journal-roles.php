@@ -69,17 +69,8 @@ class JournalRoles
             'read' => true,
             'level_0' => true,
             'view_journal' => true,
-            'view_archive' => true
+            'view_archive' => false
         ]);
-
-        // Update subscriber capabilities
-        $ignite30 = get_role('ignite30');
-        if ($ignite30) {
-            $ignite30->remove_cap('view_archive');
-            $ignite30->add_cap('read');
-            $ignite30->add_cap('level_0');
-            $ignite30->add_cap('view_journal');
-        }
 
         // Add capability to admin role
         $admin = get_role('administrator');
