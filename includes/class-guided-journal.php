@@ -53,7 +53,7 @@ class GuidedJournal
 
         // Subscriber redirect to journal
         add_action('template_redirect', function () {
-            if (is_front_page() || is_home()) {
+            if (strpos($_SERVER['REQUEST_URI'], '/home/') !== false || is_front_page() || is_home()) {
                 $user = wp_get_current_user();
                 if (in_array('subscriber', (array) $user->roles)) {
                     wp_redirect(home_url('/grid'));
