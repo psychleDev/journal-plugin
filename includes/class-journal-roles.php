@@ -87,6 +87,7 @@ class JournalRoles
             $role->add_cap('level_0', true);
             $role->add_cap('view_journal', true);
         }
+
         $irole = get_role('ignite30');
         if ($irole) {
             $irole->add_cap('read', true);
@@ -98,7 +99,7 @@ class JournalRoles
 
     public function ensure_role_exists()
     {
-        if (!get_role('menoffire') || !get_role('ignite30')) {
+        if (!get_role('menoffire')) {
             $this->create_journal_role();
         }
     }
