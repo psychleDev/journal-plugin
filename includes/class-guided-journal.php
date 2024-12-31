@@ -16,7 +16,6 @@ class GuidedJournal
 
     public function init()
     {
-        // Core functionality registration
         add_action('init', [$this, 'register_post_types']);
         add_filter('template_include', [$this, 'load_journal_templates'], 99);
         add_action('admin_menu', [$this, 'add_admin_menu']);
@@ -29,24 +28,6 @@ class GuidedJournal
         add_action('template_redirect', function () {
             global $post;
 
-            // Debug page identification
-            error_log('REQUEST_URI: ' . $_SERVER['REQUEST_URI']);
-            error_log('is_page(): ' . (is_page() ? 'true' : 'false'));
-            error_log('is_page("grid"): ' . (is_page('grid') ? 'true' : 'false'));
-            if ($post) {
-                error_log('Post ID: ' . $post->ID);
-                error_log('Post name: ' . $post->post_name);
-                error_log('Post content: ' . $post->post_content);
-                if (has_shortcode($post->post_content, 'journal_grid')) {
-                    error_log('Found journal_grid shortcode');
-                } else {
-                    error_log('No journal_grid shortcode found');
-                }
-            }
-            error_log('Current user: ' . wp_get_current_user()->user_login);
-            error_log('User roles: ' . print_r(wp_get_current_user()->roles, true));
-
-            // Check for grid page or journal prompts
             if (
                 strpos($_SERVER['REQUEST_URI'], '/grid') !== false ||
                 strpos($_SERVER['REQUEST_URI'], '/entry') !== false ||
@@ -54,22 +35,15 @@ class GuidedJournal
             ) {
 
                 if (!is_user_logged_in()) {
-                    error_log('Not logged in');
                     wp_redirect(home_url('/'));
                     exit;
                 }
 
                 $user = wp_get_current_user();
-                error_log('Checking access for user: ' . $user->user_login);
-                error_log('User roles: ' . print_r($user->roles, true));
-
                 $allowed_roles = ['administrator', 'menoffire', 'subscriber'];
                 $has_access = array_intersect($allowed_roles, (array) $user->roles);
 
-                error_log('Has access: ' . (!empty($has_access) ? 'yes' : 'no'));
-
                 if (empty($has_access)) {
-                    error_log('Access denied - no valid role');
                     wp_redirect(home_url('/'));
                     exit;
                 }
