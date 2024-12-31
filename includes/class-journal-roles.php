@@ -55,28 +55,30 @@ class JournalRoles
 
     public function create_journal_role()
     {
+        // Remove and recreate menoffire role
         remove_role('menoffire');
-
         add_role('menoffire', 'Men of Fire', [
             'read' => true,
-            'edit_posts' => false,
-            'delete_posts' => false,
-            'publish_posts' => false,
-            'upload_files' => false,
             'level_0' => true,
             'view_journal' => true,
             'view_archive' => true
         ]);
 
-        // Ensure subscriber role has journal access
+        // Update subscriber capabilities
         $subscriber = get_role('subscriber');
         if ($subscriber) {
-            $subscriber->add_cap('read', true);
-            $subscriber->add_cap('level_0', true);
+            $subscriber->remove_cap('view_archive');  // Ensure no archive access
+            $subscriber->add_cap('read');
+            $subscriber->add_cap('level_0');
             $subscriber->add_cap('view_journal', true);
+        } else {
+            add_role('subscriber', 'Subscriber', [
+                'read' => true,
+                'level_0' => true,
+                'view_journal' => true
+            ]);
         }
     }
-
     public function init_role()
     {
         $role = get_role('menoffire');
