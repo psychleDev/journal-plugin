@@ -26,6 +26,14 @@ class GuidedJournal
         add_action('wp_ajax_save_journal_entry', [$this, 'save_entry']);
         add_action('wp_ajax_get_journal_entries', [$this, 'get_entries']);
 
+        // Debug logging
+        add_action('template_redirect', function () {
+            if (is_page('grid') || is_page('entry')) {
+                error_log('User roles: ' . print_r(wp_get_current_user()->roles, true));
+                error_log('Can view journal: ' . (current_user_can('view_journal') ? 'yes' : 'no'));
+            }
+        });
+
         // Access control for journal pages
         add_action('template_redirect', function () {
             global $post;
@@ -41,11 +49,9 @@ class GuidedJournal
                     exit;
                 }
 
-                $user = wp_get_current_user();
-                $user_roles = (array) $user->roles;
-
                 // Allow access for menoffire, admin, and subscriber roles
-                if (!array_intersect(['administrator', 'menoffire', 'subscriber'], $user_roles)) {
+                if (!current_user_can('view_journal')) {
+                    error_log('Access denied - user cannot view journal');
                     wp_redirect(home_url('/'));
                     exit;
                 }
