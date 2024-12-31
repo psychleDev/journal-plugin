@@ -28,24 +28,38 @@ class GuidedJournal
         add_action('template_redirect', function () {
             global $post;
 
+            error_log('Current page: ' . (is_page('grid') ? 'grid' : 'not grid'));
+            error_log('Current user: ' . wp_get_current_user()->user_login);
+            error_log('User roles: ' . print_r(wp_get_current_user()->roles, true));
+
             if (
                 is_page('grid') || is_page('entry') ||
                 (is_singular('journal_prompt') && $post)
             ) {
 
                 if (!is_user_logged_in()) {
+                    error_log('Not logged in');
                     wp_redirect(home_url('/'));
                     exit;
                 }
 
                 $user = wp_get_current_user();
-                $allowed_roles = ['administrator', 'menoffire', 'subscriber'];
+                error_log('Checking access for user: ' . $user->user_login);
+                error_log('User roles: ' . print_r($user->roles, true));
 
-                // Check if user has any allowed role
-                $has_access = array_intersect($allowed_roles, (array) $user->roles);
+                $has_access = false;
+                if (
+                    in_array('administrator', $user->roles) ||
+                    in_array('menoffire', $user->roles) ||
+                    in_array('subscriber', $user->roles)
+                ) {
+                    $has_access = true;
+                }
 
-                if (empty($has_access)) {
-                    error_log('Access denied - no valid role');
+                error_log('Has access: ' . ($has_access ? 'yes' : 'no'));
+
+                if (!$has_access) {
+                    error_log('Access denied');
                     wp_redirect(home_url('/'));
                     exit;
                 }
