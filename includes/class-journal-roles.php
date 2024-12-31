@@ -64,13 +64,21 @@ class JournalRoles
             'view_archive' => true
         ]);
 
+        remove_role('ignite30');
+        add_role('ignite30', 'Ignite 30', [
+            'read' => true,
+            'level_0' => true,
+            'view_journal' => true,
+            'view_archive' => true
+        ]);
+
         // Update subscriber capabilities
-        $subscriber = get_role('subscriber');
-        if ($subscriber) {
-            $subscriber->remove_cap('view_archive');
-            $subscriber->add_cap('read');
-            $subscriber->add_cap('level_0');
-            $subscriber->add_cap('view_journal');
+        $ignite30 = get_role('ignite30');
+        if ($ignite30) {
+            $ignite30->remove_cap('view_archive');
+            $ignite30->add_cap('read');
+            $ignite30->add_cap('level_0');
+            $ignite30->add_cap('view_journal');
         }
 
         // Add capability to admin role
@@ -88,11 +96,18 @@ class JournalRoles
             $role->add_cap('level_0', true);
             $role->add_cap('view_journal', true);
         }
+        $irole = get_role('ignite30');
+        if ($irole) {
+            $irole->add_cap('read', true);
+            $irole->add_cap('level_0', true);
+            $irole->add_cap('view_journal', true);
+        }
+
     }
 
     public function ensure_role_exists()
     {
-        if (!get_role('menoffire')) {
+        if (!get_role('menoffire') || !get_role('ignite30')) {
             $this->create_journal_role();
         }
     }
@@ -100,12 +115,21 @@ class JournalRoles
     public function add_editable_role($roles)
     {
         $journal_role = get_role('menoffire');
+        $ignite_role = get_role('ignite30');
         if ($journal_role) {
             $roles['menoffire'] = [
                 'name' => 'Men of Fire',
                 'capabilities' => $journal_role->capabilities
             ];
         }
+
+        if ($ignite_role) {
+            $roles['ignite30'] = [
+                'name' => 'Ignite 30',
+                'capabilities' => $ignite_role->capabilities
+            ];
+        }
+
         return $roles;
     }
 
