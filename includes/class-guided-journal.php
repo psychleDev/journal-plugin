@@ -14,54 +14,87 @@ class GuidedJournal
         $this->test_mode = get_option('guided_journal_test_mode', true);
     }
 
+    // public function init()
+    // {
+    //     // Register post type for prompts
+    //     add_action('init', [$this, 'register_post_types']);
+
+    //     add_filter('template_include', [$this, 'load_journal_templates'], 99);
+
+
+    //     // Add admin menu
+    //     add_action('admin_menu', [$this, 'add_admin_menu']);
+
+
+
+    //     // Register shortcodes
+    //     add_shortcode('journal_grid', [$this, 'render_grid']);
+    //     add_shortcode('journal_entry', [$this, 'render_entry_page']);
+
+    //     // Register scripts and styles
+    //     add_action('wp_enqueue_scripts', [$this, 'enqueue_assets']);
+
+    //     // Register AJAX handlers
+    //     add_action('wp_ajax_save_journal_entry', [$this, 'save_entry']);
+    //     add_action('wp_ajax_get_journal_entries', [$this, 'get_entries']);
+
+    //     if (is_page('grid') || is_page('entry')) {
+
+    //         // If not logged in, send to login page
+    //         if (!is_user_logged_in()) {
+    //             wp_redirect(home_url('/'));
+    //             exit;
+    //         }
+
+    //         // Check the current user's WordPress role(s)
+    //         $current_user = wp_get_current_user();
+    //         $roles = (array) $current_user->roles;
+
+    //         // Only menoffire role can see Archive
+    //         if (!in_array('menoffire', $roles) && !current_user_can('administrator') && !current_user_can('subscriber')) {
+    //             wp_redirect(home_url('/'));
+    //             exit;
+    //         }
+
+    //         // If user tries to access the Journal page
+    //     }
+
+    // }
+
+
     public function init()
     {
         // Register post type for prompts
         add_action('init', [$this, 'register_post_types']);
-
         add_filter('template_include', [$this, 'load_journal_templates'], 99);
-
-
-        // Add admin menu
         add_action('admin_menu', [$this, 'add_admin_menu']);
-
-
-
-        // Register shortcodes
         add_shortcode('journal_grid', [$this, 'render_grid']);
         add_shortcode('journal_entry', [$this, 'render_entry_page']);
-
-        // Register scripts and styles
         add_action('wp_enqueue_scripts', [$this, 'enqueue_assets']);
-
-        // Register AJAX handlers
         add_action('wp_ajax_save_journal_entry', [$this, 'save_entry']);
         add_action('wp_ajax_get_journal_entries', [$this, 'get_entries']);
 
-        if (is_page('grid') || is_page('entry')) {
+        // Check access for journal pages
+        add_action('template_redirect', function () {
+            // Only check on journal-related pages
+            if (is_page('grid') || is_page('entry') || get_post_type() == 'journal_prompt') {
+                // Redirect if not logged in
+                if (!is_user_logged_in()) {
+                    wp_redirect(home_url('/'));
+                    exit;
+                }
 
-            // If not logged in, send to login page
-            if (!is_user_logged_in()) {
-                wp_redirect(home_url('/'));
-                exit;
+                // Allow access for menoffire, admin, and ignite30 roles
+                $user = wp_get_current_user();
+                $allowed_roles = array('administrator', 'menoffire', 'subscriber');
+
+                if (!array_intersect($allowed_roles, (array) $user->roles)) {
+                    wp_redirect(home_url('/'));
+                    exit;
+                }
             }
-
-            // Check the current user's WordPress role(s)
-            $current_user = wp_get_current_user();
-            $roles = (array) $current_user->roles;
-
-            // Only menoffire role can see Archive
-            if (!in_array('menoffire', $roles) && !current_user_can('administrator') && !current_user_can('subscriber')) {
-                wp_redirect(home_url('/'));
-                exit;
-            }
-
-            // If user tries to access the Journal page
-        }
-
+        });
     }
-
-
     public function load_journal_templates($template)
     {
         if (is_singular('journal_prompt')) {
