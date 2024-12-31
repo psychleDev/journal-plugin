@@ -16,7 +16,7 @@ class GuidedJournal
 
     public function init()
     {
-        // Register post type for prompts
+        // Core functionality registration
         add_action('init', [$this, 'register_post_types']);
         add_filter('template_include', [$this, 'load_journal_templates'], 99);
         add_action('admin_menu', [$this, 'add_admin_menu']);
@@ -26,21 +26,26 @@ class GuidedJournal
         add_action('wp_ajax_save_journal_entry', [$this, 'save_entry']);
         add_action('wp_ajax_get_journal_entries', [$this, 'get_entries']);
 
-        // Check access for journal pages
+        // Access control for journal pages
         add_action('template_redirect', function () {
-            // Only check on journal-related pages
-            if (is_page('grid') || is_page('entry') || get_post_type() == 'journal_prompt') {
-                // Redirect if not logged in
+            global $post;
+
+            // Check if we're on a journal page
+            if (
+                is_page('grid') || is_page('entry') ||
+                (is_singular('journal_prompt') && $post)
+            ) {
+
                 if (!is_user_logged_in()) {
                     wp_redirect(home_url('/'));
                     exit;
                 }
 
-                // Allow access for menoffire, admin, and ignite30 roles
                 $user = wp_get_current_user();
-                $allowed_roles = array('administrator', 'menoffire', 'subscriber');
+                $user_roles = (array) $user->roles;
 
-                if (!array_intersect($allowed_roles, (array) $user->roles)) {
+                // Allow access for menoffire, admin, and subscriber roles
+                if (!array_intersect(['administrator', 'menoffire', 'subscriber'], $user_roles)) {
                     wp_redirect(home_url('/'));
                     exit;
                 }
