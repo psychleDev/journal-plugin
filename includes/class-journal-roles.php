@@ -67,16 +67,17 @@ class JournalRoles
         // Update subscriber capabilities
         $subscriber = get_role('subscriber');
         if ($subscriber) {
-            $subscriber->remove_cap('view_archive');  // Ensure no archive access
+            $subscriber->remove_cap('view_archive');
             $subscriber->add_cap('read');
             $subscriber->add_cap('level_0');
-            $subscriber->add_cap('view_journal', true);
-        } else {
-            add_role('subscriber', 'Subscriber', [
-                'read' => true,
-                'level_0' => true,
-                'view_journal' => true
-            ]);
+            $subscriber->add_cap('view_journal');
+        }
+
+        // Add capability to admin role
+        $admin = get_role('administrator');
+        if ($admin) {
+            $admin->add_cap('view_journal');
+            $admin->add_cap('view_archive');
         }
     }
     public function init_role()
