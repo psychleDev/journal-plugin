@@ -41,7 +41,7 @@ class GuidedJournal
                 }
 
                 $user = wp_get_current_user();
-                $allowed_roles = ['administrator', 'menoffire', 'subscriber'];
+                $allowed_roles = ['administrator', 'menoffire', 'ignite30'];
                 $has_access = array_intersect($allowed_roles, (array) $user->roles);
 
                 if (empty($has_access)) {
@@ -52,15 +52,15 @@ class GuidedJournal
         });
 
         // Subscriber redirect to journal
-        add_action('template_redirect', function () {
-            if (strpos($_SERVER['REQUEST_URI'], '/home/') !== false || is_front_page() || is_home()) {
-                $user = wp_get_current_user();
-                if (in_array('subscriber', (array) $user->roles)) {
-                    wp_redirect(home_url('/grid'));
-                    exit;
-                }
-            }
-        });
+        // add_action('template_redirect', function () {
+        //     if (strpos($_SERVER['REQUEST_URI'], '/home/') !== false || is_front_page() || is_home()) {
+        //         $user = wp_get_current_user();
+        //         if (in_array('ignite30', (array) $user->roles)) {
+        //             wp_redirect(home_url('/grid'));
+        //             exit;
+        //         }
+        //     }
+        // });
     }
 
 
