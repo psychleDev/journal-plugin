@@ -108,6 +108,7 @@ class JournalRoles
     {
         $journal_role = get_role('menoffire');
         $ignite_role = get_role('ignite30');
+
         if ($journal_role) {
             $roles['menoffire'] = [
                 'name' => 'Men of Fire',
