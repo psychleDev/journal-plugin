@@ -16,7 +16,6 @@ class GuidedJournal
 
     public function init()
     {
-        // Core functionality registration
         add_action('init', [$this, 'register_post_types']);
         add_filter('template_include', [$this, 'load_journal_templates'], 99);
         add_action('admin_menu', [$this, 'add_admin_menu']);
@@ -26,19 +25,9 @@ class GuidedJournal
         add_action('wp_ajax_save_journal_entry', [$this, 'save_entry']);
         add_action('wp_ajax_get_journal_entries', [$this, 'get_entries']);
 
-        // Debug logging
-        add_action('template_redirect', function () {
-            if (is_page('grid') || is_page('entry')) {
-                error_log('User roles: ' . print_r(wp_get_current_user()->roles, true));
-                error_log('Can view journal: ' . (current_user_can('view_journal') ? 'yes' : 'no'));
-            }
-        });
-
-        // Access control for journal pages
         add_action('template_redirect', function () {
             global $post;
 
-            // Check if we're on a journal page
             if (
                 is_page('grid') || is_page('entry') ||
                 (is_singular('journal_prompt') && $post)
@@ -49,9 +38,14 @@ class GuidedJournal
                     exit;
                 }
 
-                // Allow access for menoffire, admin, and subscriber roles
-                if (!current_user_can('view_journal')) {
-                    error_log('Access denied - user cannot view journal');
+                $user = wp_get_current_user();
+                $allowed_roles = ['administrator', 'menoffire', 'subscriber'];
+
+                // Check if user has any allowed role
+                $has_access = array_intersect($allowed_roles, (array) $user->roles);
+
+                if (empty($has_access)) {
+                    error_log('Access denied - no valid role');
                     wp_redirect(home_url('/'));
                     exit;
                 }
