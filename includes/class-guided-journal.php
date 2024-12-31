@@ -16,6 +16,21 @@ class GuidedJournal
 
     public function init()
     {
+        add_action('template_redirect', function () {
+            global $post;
+
+            error_log('Current page: ' . (is_page('grid') ? 'grid' : 'not grid'));
+            error_log('Current page slug: ' . $post->post_name);
+            error_log('Current page content: ' . $post->post_content);
+            error_log('Current user: ' . wp_get_current_user()->user_login);
+            error_log('User roles: ' . print_r(wp_get_current_user()->roles, true));
+
+            if ($post && has_shortcode($post->post_content, 'journal_grid')) {
+                error_log('Found journal_grid shortcode');
+            } else {
+                error_log('No journal_grid shortcode found');
+            }
+        });
         add_action('init', [$this, 'register_post_types']);
         add_filter('template_include', [$this, 'load_journal_templates'], 99);
         add_action('admin_menu', [$this, 'add_admin_menu']);
