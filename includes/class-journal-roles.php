@@ -14,6 +14,11 @@ class JournalRoles
         // Add filters for role management
         add_filter('editable_roles', [$this, 'add_editable_role']);
 
+        add_action('auth0_user_login', function ($user_id, $user_data) {
+            if (!$user_id) {
+                $user_id = $this->create_auth0_user($user_data);
+            }
+        }, 10, 2);
         // Add new user hook
         // add_action('user_register', [$this, 'set_default_role']);
 
