@@ -180,6 +180,43 @@ class JournalRoles
             }
         }
     }
+    // Add this to class-journal-roles.php
+
+    public function create_auth0_user($user_data)
+    {
+        try {
+            // Sanitize and prepare user data
+            $email = sanitize_email($user_data->email);
+            $username = sanitize_user($user_data->email);
+
+            // Check if user exists
+            if (!email_exists($email)) {
+                // Create WP user
+                $user_id = wp_create_user(
+                    $username,
+                    wp_generate_password(),
+                    $email
+                );
+
+                if (!is_wp_error($user_id)) {
+                    // Set role to subscriber by default
+                    $user = new WP_User($user_id);
+                    $user->set_role('subscriber');
+
+                    // Log success
+                    error_log('Created new WordPress user from Auth0: ' . $email);
+                    return $user_id;
+                }
+            } else {
+                // User exists, just return the ID
+                $existing_user = get_user_by('email', $email);
+                return $existing_user->ID;
+            }
+        } catch (Exception $e) {
+            error_log('Error creating WordPress user: ' . $e->getMessage());
+            return false;
+        }
+    }
 }
 
 // Initialize the roles management
