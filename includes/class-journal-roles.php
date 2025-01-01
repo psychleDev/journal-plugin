@@ -180,6 +180,7 @@ class JournalRoles
             }
         }
     }
+
     // Add this to class-journal-roles.php
 
     public function create_auth0_user($user_data)
@@ -217,6 +218,7 @@ class JournalRoles
             return false;
         }
     }
+
 }
 
 // Initialize the roles management
