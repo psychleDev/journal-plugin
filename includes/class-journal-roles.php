@@ -25,15 +25,24 @@ class JournalRoles
         add_action('template_redirect', function () {
             $current_uri = $_SERVER['REQUEST_URI'];
 
-            // Check for Auth0 callback with error or API error
             if (
                 (isset($_GET['auth0']) && isset($_GET['code'])) ||
-                strpos($current_uri, 'api/v2') !== false ||
-                (isset($_GET['error']) && isset($_GET['error_description']))
+                strpos($current_uri, 'api/v2') !== false
             ) {
-                error_log('Redirecting to verification page. URI: ' . $current_uri);
-                wp_redirect(get_page_link($this->create_or_get_error_page()));
-                exit;
+
+                // Create the page if it doesn't exist
+                $page_id = $this->create_or_get_error_page();
+
+                // Get the correct page URL
+                $redirect_url = get_permalink($page_id);
+
+                // Debug logging
+                error_log('Redirecting to: ' . $redirect_url);
+
+                if ($redirect_url) {
+                    wp_safe_redirect($redirect_url);
+                    exit;
+                }
             }
         });
 
