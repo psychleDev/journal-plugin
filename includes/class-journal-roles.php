@@ -185,7 +185,22 @@ class JournalRoles
             }
         }
     }
+    private function create_or_get_error_page()
+    {
+        $page = get_page_by_path('verify-email');
 
+        if (!$page) {
+            $page_id = wp_insert_post([
+                'post_title' => 'Email Verification Required',
+                'post_name' => 'verify-email',
+                'post_status' => 'publish',
+                'post_type' => 'page'
+            ]);
+            return $page_id;
+        }
+
+        return $page->ID;
+    }
     // Add this to class-journal-roles.php
 
     public function create_auth0_user($user_data)
