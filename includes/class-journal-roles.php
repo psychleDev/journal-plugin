@@ -14,13 +14,23 @@ class JournalRoles
         // Add filters for role management
         add_filter('editable_roles', [$this, 'add_editable_role']);
 
+        // Auth0 user handling
         add_action('auth0_user_login', function ($user_id, $user_data) {
             if (!$user_id) {
                 $user_id = $this->create_auth0_user($user_data);
             }
         }, 10, 2);
-        // Add new user hook
-        // add_action('user_register', [$this, 'set_default_role']);
+
+        // Error page redirect
+        add_action('template_redirect', function () {
+            if (
+                strpos($_SERVER['REQUEST_URI'], '/api/v2/') !== false ||
+                (isset($_GET['auth0']) && isset($_GET['error']))
+            ) {
+                wp_redirect(get_page_link($this->create_or_get_error_page()));
+                exit;
+            }
+        });
 
         // Add page restriction functionality
         add_action('add_meta_boxes', [$this, 'add_restriction_meta_box']);
@@ -33,17 +43,6 @@ class JournalRoles
                 show_admin_bar(false);
             }
         });
-
-        // Redirect journal members from wp-admin to home page
-        // add_action('admin_init', function() {
-        //     $user = wp_get_current_user();
-
-        //     // Check if user is a journal member and not an administrator
-        //     if (in_array('menoffire', (array) $user->roles) && !in_array('administrator', (array) $user->roles)) {
-        //         wp_redirect(home_url());
-        //         exit;
-        //     }
-        // });
     }
 
     public function activate()
