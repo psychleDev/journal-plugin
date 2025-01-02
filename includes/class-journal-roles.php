@@ -197,8 +197,10 @@ class JournalRoles
             $page_id = wp_insert_post([
                 'post_title' => 'Email Verification Required',
                 'post_name' => 'verify-email',
+                'post_content' => file_get_contents(get_template_directory() . '/page-verify-email.php'),
                 'post_status' => 'publish',
-                'post_type' => 'page'
+                'post_type' => 'page',
+                'comment_status' => 'closed'
             ]);
             return $page_id;
         }
