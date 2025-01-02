@@ -23,10 +23,15 @@ class JournalRoles
 
         // Error page redirect
         add_action('template_redirect', function () {
+            $current_uri = $_SERVER['REQUEST_URI'];
+
+            // Check for Auth0 callback with error or API error
             if (
-                strpos($_SERVER['REQUEST_URI'], '/api/v2/') !== false ||
-                (isset($_GET['auth0']) && isset($_GET['error']))
+                (isset($_GET['auth0']) && isset($_GET['code'])) ||
+                strpos($current_uri, 'api/v2') !== false ||
+                (isset($_GET['error']) && isset($_GET['error_description']))
             ) {
+                error_log('Redirecting to verification page. URI: ' . $current_uri);
                 wp_redirect(get_page_link($this->create_or_get_error_page()));
                 exit;
             }
