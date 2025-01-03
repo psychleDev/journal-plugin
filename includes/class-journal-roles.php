@@ -203,15 +203,23 @@ class JournalRoles
         $page = get_page_by_path('verify-email');
 
         if (!$page) {
-            $page_id = wp_insert_post([
+            $page_data = [
                 'post_title' => 'Email Verification Required',
                 'post_name' => 'verify-email',
-                'post_content' => file_get_contents(get_template_directory() . '/page-verify-email.php'),
                 'post_status' => 'publish',
                 'post_type' => 'page',
-                'comment_status' => 'closed'
-            ]);
-            return $page_id;
+                'comment_status' => 'closed',
+                'ping_status' => 'closed',
+                'post_content' => file_get_contents(get_template_directory() . '/page-verify-email.php')
+            ];
+
+            $page_id = wp_insert_post($page_data);
+
+            if (!is_wp_error($page_id)) {
+                // Set page template
+                update_post_meta($page_id, '_wp_page_template', 'page-verify-email.php');
+                return $page_id;
+            }
         }
 
         return $page->ID;
