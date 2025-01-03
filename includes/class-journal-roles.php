@@ -229,9 +229,17 @@ class JournalRoles
     public function create_auth0_user($user_data)
     {
         try {
+            // Convert stdClass to array if needed
+            $user_data = json_decode(json_encode($user_data), true);
+
             // Sanitize and prepare user data
-            $email = sanitize_email($user_data->email);
-            $username = sanitize_user($user_data->email);
+            $email = isset($user_data['email']) ? sanitize_email($user_data['email']) : '';
+            $username = isset($user_data['email']) ? sanitize_user($user_data['email']) : '';
+
+            if (empty($email)) {
+                error_log('Auth0: No email provided in user data');
+                return false;
+            }
 
             // Check if user exists
             if (!email_exists($email)) {
@@ -247,7 +255,18 @@ class JournalRoles
                     $user = new WP_User($user_id);
                     $user->set_role('subscriber');
 
-                    // Log success
+                    // Store verification status
+                    $email_verified = isset($user_data['email_verified']) ? (bool) $user_data['email_verified'] : false;
+                    update_user_meta($user_id, 'email_verified', $email_verified);
+
+                    // Store Auth0 metadata
+                    $auth0_user = array(
+                        'email_verified' => $email_verified,
+                        'user_metadata' => isset($user_data['user_metadata']) ? $user_data['user_metadata'] : array(),
+                        'app_metadata' => isset($user_data['app_metadata']) ? $user_data['app_metadata'] : array()
+                    );
+                    update_user_meta($user_id, 'auth0_user', $auth0_user);
+
                     error_log('Created new WordPress user from Auth0: ' . $email);
                     return $user_id;
                 }
