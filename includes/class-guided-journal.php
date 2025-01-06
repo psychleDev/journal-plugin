@@ -51,6 +51,20 @@ class GuidedJournal
             }
         });
 
+        add_action('template_redirect', function () {
+            global $post;
+
+            if (
+                strpos($_SERVER['REQUEST_URI'], '/update-role') !== false
+            ) {
+
+                // Get query param for users role and email address: ?role=menoffire&email=test@test.com
+                // When we have the user role and email address - update users role if user exists. 
+                // if user doesnt exist create user then update role. 
+                //ADD THIS URL TO IGNITE LANDING https://members.risingfather.com/update-role/?role=menoffire&email=test@test.com
+            }
+        });
+
         // Subscriber redirect to journal
         add_action('template_redirect', function () {
             if (strpos($_SERVER['REQUEST_URI'], '/home/') !== false || is_front_page() || is_home()) {
