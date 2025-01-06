@@ -4,12 +4,12 @@
  */
 
 get_header();
- ?>
+?>
 
 <div id="primary" class="content-area">
     <main id="main" class="site-main">
         <?php
-        while (have_posts()) :
+        while (have_posts()):
             the_post();
             ?>
             <article id="post-<?php the_ID(); ?>" <?php post_class(); ?>>
@@ -20,10 +20,10 @@ get_header();
                 <div class="entry-content">
                     <?php
                     // the_content();
-
+                
                     wp_link_pages(array(
                         'before' => '<div class="page-links">' . esc_html__('Pages:', 'guided-journal'),
-                        'after'  => '</div>',
+                        'after' => '</div>',
                     ));
                     ?>
 
@@ -39,7 +39,7 @@ get_header();
 
             <?php
             // If comments are open or we have at least one comment, load up the comment template.
-            if (comments_open() || get_comments_number()) :
+            if (comments_open() || get_comments_number()):
                 comments_template();
             endif;
 
