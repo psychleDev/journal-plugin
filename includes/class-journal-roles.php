@@ -198,6 +198,8 @@ class JournalRoles
             }
         }
     }
+
+
     private function create_or_get_error_page()
     {
         $page = get_page_by_path('page-verify-email');
