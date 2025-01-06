@@ -61,19 +61,6 @@ class GuidedJournal
                 }
             }
         });
-
-        // add_action('template_redirect', function () {
-        //     global $post;
-
-        //     if (
-        //         strpos($_SERVER['REQUEST_URI'], '/setup-user') !== false ||
-        //     ) {
-
-
-        //     // Add logic here to create a wp-user with an email address passed from auth0, then set their role(if you want)
-
-        //     }
-        // });
     }
 
 

@@ -200,26 +200,18 @@ class JournalRoles
     }
     private function create_or_get_error_page()
     {
-        $page = get_page_by_path('verify-email');
+        $page = get_page_by_path('page-verify-email');
 
         if (!$page) {
-            $page_data = [
+            $page_id = wp_insert_post([
                 'post_title' => 'Email Verification Required',
                 'post_name' => 'verify-email',
+                'post_content' => file_get_contents(get_template_directory() . '/page-verify-email.php'),
                 'post_status' => 'publish',
                 'post_type' => 'page',
-                'comment_status' => 'closed',
-                'ping_status' => 'closed',
-                'post_content' => file_get_contents(get_template_directory() . '/page-verify-email.php')
-            ];
-
-            $page_id = wp_insert_post($page_data);
-
-            if (!is_wp_error($page_id)) {
-                // Set page template
-                update_post_meta($page_id, '_wp_page_template', 'page-verify-email.php');
-                return $page_id;
-            }
+                'comment_status' => 'closed'
+            ]);
+            return $page_id;
         }
 
         return $page->ID;
@@ -229,17 +221,9 @@ class JournalRoles
     public function create_auth0_user($user_data)
     {
         try {
-            // Convert stdClass to array if needed
-            $user_data = json_decode(json_encode($user_data), true);
-
             // Sanitize and prepare user data
-            $email = isset($user_data['email']) ? sanitize_email($user_data['email']) : '';
-            $username = isset($user_data['email']) ? sanitize_user($user_data['email']) : '';
-
-            if (empty($email)) {
-                error_log('Auth0: No email provided in user data');
-                return false;
-            }
+            $email = sanitize_email($user_data->email);
+            $username = sanitize_user($user_data->email);
 
             // Check if user exists
             if (!email_exists($email)) {
@@ -255,18 +239,7 @@ class JournalRoles
                     $user = new WP_User($user_id);
                     $user->set_role('subscriber');
 
-                    // Store verification status
-                    $email_verified = isset($user_data['email_verified']) ? (bool) $user_data['email_verified'] : false;
-                    update_user_meta($user_id, 'email_verified', $email_verified);
-
-                    // Store Auth0 metadata
-                    $auth0_user = array(
-                        'email_verified' => $email_verified,
-                        'user_metadata' => isset($user_data['user_metadata']) ? $user_data['user_metadata'] : array(),
-                        'app_metadata' => isset($user_data['app_metadata']) ? $user_data['app_metadata'] : array()
-                    );
-                    update_user_meta($user_id, 'auth0_user', $auth0_user);
-
+                    // Log success
                     error_log('Created new WordPress user from Auth0: ' . $email);
                     return $user_id;
                 }
