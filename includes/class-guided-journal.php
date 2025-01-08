@@ -51,17 +51,54 @@ class GuidedJournal
             }
         });
 
+        //ADD THIS URL TO IGNITE LANDING https://members.risingfather.com/update-role/?role=menoffire&email=test@test.com
+
+
         add_action('template_redirect', function () {
             global $post;
 
-            if (
-                strpos($_SERVER['REQUEST_URI'], '/update-role') !== false
-            ) {
+            if (strpos($_SERVER['REQUEST_URI'], '/update-role') !== false) {
+                // Get and sanitize query parameters
+                $role = sanitize_text_field($_GET['role'] ?? '');
+                $email = sanitize_email($_GET['email'] ?? '');
 
-                // Get query param for users role and email address: ?role=menoffire&email=test@test.com
-                // When we have the user role and email address - update users role if user exists. 
-                // if user doesnt exist create user then update role. 
-                //ADD THIS URL TO IGNITE LANDING https://members.risingfather.com/update-role/?role=menoffire&email=test@test.com
+                // Validate inputs
+                if (empty($role) || empty($email)) {
+                    wp_die('Missing required parameters');
+                }
+
+                // Verify role is valid
+                if (!in_array($role, ['menoffire', 'ignite30'])) {
+                    wp_die('Invalid role specified');
+                }
+
+                // Check if user exists
+                $user = get_user_by('email', $email);
+
+                if ($user) {
+                    // Update existing user's role
+                    $user->set_role($role);
+                    exit;
+                } else {
+                    // Create new user with random password
+                    $username = sanitize_user($email);
+                    $random_password = wp_generate_password();
+
+                    $user_id = wp_create_user(
+                        $username,
+                        $random_password,
+                        $email
+                    );
+
+                    if (!is_wp_error($user_id)) {
+                        // Set the specified role for the new user
+                        $new_user = new WP_User($user_id);
+                        $new_user->set_role($role);
+                        exit;
+                    } else {
+                        wp_die('Error creating user');
+                    }
+                }
             }
         });
 
