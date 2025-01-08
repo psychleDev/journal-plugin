@@ -51,56 +51,58 @@ class GuidedJournal
             }
         });
 
-        //ADD THIS URL TO IGNITE LANDING https://members.risingfather.com/update-role/?role=menoffire&email=test@test.com
+        //-----------------------LANDING PAGE REDIRECT------------------------//
+        //ADD THIS URL TO Menoffire LANDING https://members.risingfather.com/update-role/?role=menoffire&email=test@test.com
 
 
-        add_action('template_redirect', function () {
-            global $post;
+        // add_action('template_redirect', function () {
+        //     global $post;
 
-            if (strpos($_SERVER['REQUEST_URI'], '/update-role') !== false) {
-                // Get and sanitize query parameters
-                $role = sanitize_text_field($_GET['role'] ?? '');
-                $email = sanitize_email($_GET['email'] ?? '');
+        //     if (strpos($_SERVER['REQUEST_URI'], '/update-role') !== false) {
+        //         // Get and sanitize query parameters
+        //         $role = sanitize_text_field($_GET['role'] ?? '');
+        //         $email = sanitize_email($_GET['email'] ?? '');
 
-                // Validate inputs
-                if (empty($role) || empty($email)) {
-                    wp_die('Missing required parameters');
-                }
+        //         // Validate inputs
+        //         if (empty($role) || empty($email)) {
+        //             wp_die('Missing required parameters');
+        //         }
 
-                // Verify role is valid
-                if (!in_array($role, ['menoffire', 'ignite30'])) {
-                    wp_die('Invalid role specified');
-                }
+        //         // Verify role is valid
+        //         if (!in_array($role, ['menoffire', 'ignite30'])) {
+        //             wp_die('Invalid role specified');
+        //         }
 
-                // Check if user exists
-                $user = get_user_by('email', $email);
+        //         // Check if user exists
+        //         $user = get_user_by('email', $email);
 
-                if ($user) {
-                    // Update existing user's role
-                    $user->set_role($role);
-                    exit;
-                } else {
-                    // Create new user with random password
-                    $username = sanitize_user($email);
-                    $random_password = wp_generate_password();
+        //         if ($user) {
+        //             // Update existing user's role
+        //             $user->set_role($role);
+        //             exit;
+        //         } else {
+        //             // Create new user with random password
+        //             $username = sanitize_user($email);
+        //             $random_password = wp_generate_password();
 
-                    $user_id = wp_create_user(
-                        $username,
-                        $random_password,
-                        $email
-                    );
+        //             $user_id = wp_create_user(
+        //                 $username,
+        //                 $random_password,
+        //                 $email
+        //             );
 
-                    if (!is_wp_error($user_id)) {
-                        // Set the specified role for the new user
-                        $new_user = new WP_User($user_id);
-                        $new_user->set_role($role);
-                        exit;
-                    } else {
-                        wp_die('Error creating user');
-                    }
-                }
-            }
-        });
+        //             if (!is_wp_error($user_id)) {
+        //                 // Set the specified role for the new user
+        //                 $new_user = new WP_User($user_id);
+        //                 $new_user->set_role($role);
+        //                 exit;
+        //             } else {
+        //                 wp_die('Error creating user');
+        //             }
+        //         }
+        //     }
+        // });
+        //-----------------------LANDING PAGE REDIRECT------------------------//
 
         // Subscriber redirect to journal
         add_action('template_redirect', function () {
