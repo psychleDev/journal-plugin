@@ -52,56 +52,63 @@ class GuidedJournal
         });
 
         //-----------------------LANDING PAGE REDIRECT------------------------//
-        //ADD THIS URL TO Menoffire LANDING https://members.risingfather.com/update-role/?role=menoffire&email=test@test.com
+//ADD THIS URL TO Menoffire SUCCESS PAGE https://members.risingfather.com/update-role/?role=menoffire&email=test@test.com
 
+        add_action('template_redirect', function () {
+            global $post;
 
-        // add_action('template_redirect', function () {
-        //     global $post;
+            if (strpos($_SERVER['REQUEST_URI'], '/update-role') !== false) {
+                error_log('=== ROLE UPDATE START ===');
 
-        //     if (strpos($_SERVER['REQUEST_URI'], '/update-role') !== false) {
-        //         // Get and sanitize query parameters
-        //         $role = sanitize_text_field($_GET['role'] ?? '');
-        //         $email = sanitize_email($_GET['email'] ?? '');
+                // Get and sanitize query parameters - preserve the + in email
+                $role = sanitize_text_field($_GET['role'] ?? '');
+                $email = str_replace(' ', '+', $_GET['email'] ?? ''); // Preserve + in email
+                $email = sanitize_email($email);
 
-        //         // Validate inputs
-        //         if (empty($role) || empty($email)) {
-        //             wp_die('Missing required parameters');
-        //         }
+                error_log("Attempting role update - Email: $email, Role: $role");
 
-        //         // Verify role is valid
-        //         if (!in_array($role, ['menoffire', 'ignite30'])) {
-        //             wp_die('Invalid role specified');
-        //         }
+                // Validate inputs
+                if (empty($role) || empty($email)) {
+                    error_log('Missing required parameters');
+                    wp_die('Missing required parameters');
+                }
 
-        //         // Check if user exists
-        //         $user = get_user_by('email', $email);
+                // Verify role is valid
+                if (!in_array($role, ['menoffire', 'ignite30'])) {
+                    error_log("Invalid role specified: $role");
+                    wp_die('Invalid role specified');
+                }
 
-        //         if ($user) {
-        //             // Update existing user's role
-        //             $user->set_role($role);
-        //             exit;
-        //         } else {
-        //             // Create new user with random password
-        //             $username = sanitize_user($email);
-        //             $random_password = wp_generate_password();
+                // Check if user exists - try both email formats
+                $user = get_user_by('email', $email);
+                if (!$user) {
+                    // Try alternative email format
+                    $alt_email = str_replace('+', '', $email);
+                    $user = get_user_by('email', $alt_email);
+                }
 
-        //             $user_id = wp_create_user(
-        //                 $username,
-        //                 $random_password,
-        //                 $email
-        //             );
+                if ($user) {
+                    error_log("Updating existing user role to: $role");
+                    // Update existing user's role
+                    $user->set_role($role);
 
-        //             if (!is_wp_error($user_id)) {
-        //                 // Set the specified role for the new user
-        //                 $new_user = new WP_User($user_id);
-        //                 $new_user->set_role($role);
-        //                 exit;
-        //             } else {
-        //                 wp_die('Error creating user');
-        //             }
-        //         }
-        //     }
-        // });
+                    // Log success
+                    error_log("Successfully updated role for user: $email to $role");
+
+                    // Redirect to success page based on role
+                    if ($role === 'menoffire') {
+                        wp_redirect(home_url('/grid'));
+                    } else {
+                        wp_redirect(home_url('/'));
+                    }
+                    exit;
+                } else {
+                    error_log("User not found with either email format");
+                    wp_die('User not found');
+                }
+                error_log('=== ROLE UPDATE COMPLETE ===');
+            }
+        });
         //-----------------------LANDING PAGE REDIRECT------------------------//
 
         // Subscriber redirect to journal
