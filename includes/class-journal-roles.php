@@ -237,9 +237,9 @@ class JournalRoles
                 );
 
                 if (!is_wp_error($user_id)) {
-                    // Set role to subscriber by default
-                    $user = new WP_User($user_id);
-                    $user->set_role('ignite30');
+                    // // Set role to subscriber by default
+                    // $user = new WP_User($user_id);
+                    // $user->set_role('ignite30');
 
                     // Log success
                     error_log('Created new WordPress user from Auth0: ' . $email);
