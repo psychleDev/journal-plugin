@@ -27,15 +27,15 @@ function guided_journal_init()
     $plugin->register_post_types();
     $plugin->init();
 
-    // Initialize roles
+    // Initialize roles (with updated method name)
     $roles = new GuidedJournal\JournalRoles();
+    $roles->initialize_roles();
 
     // Initialize settings
     $settings = new GuidedJournal\GuidedJournalSettings();
 
     return $plugin;
 }
-
 // Auth0 user handling
 add_action('auth0_user_login', function ($user_id, $user_data) {
     // check if Auth0 user is email verified
