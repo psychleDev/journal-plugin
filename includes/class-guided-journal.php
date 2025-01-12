@@ -124,12 +124,74 @@ class GuidedJournal
 
     public function render_create_prompts_page()
     {
+        // Check if form was submitted
         if (isset($_POST['create_prompts']) && check_admin_referer('create_prompts_nonce')) {
-            $this->create_prompts();
+            $prompts = [
+                "Write about a moment today when you felt strong.",
+                "What's one thing you want to change in your life and why?",
+                "Describe a challenge you faced and how it changed you.",
+                "What do you value most in relationships?",
+                "What are three things you're grateful for today?",
+                "What would you do if you knew you couldn't fail?",
+                "Describe a person who has greatly influenced your life.",
+                "What are your top priorities right now?",
+                "Write about a fear you'd like to overcome.",
+                "What makes you feel most alive?",
+                "Describe your perfect day.",
+                "What's a goal you're working towards?",
+                "Write about a time you felt proud of yourself.",
+                "What does success mean to you?",
+                "Describe a place where you feel at peace."
+            ];
+
+            $created = 0;
+            $skipped = 0;
+
+            for ($i = 1; $i <= 365; $i++) {
+                // Check if prompt already exists
+                $existing = get_page_by_path((string) $i, OBJECT, 'journal_prompt');
+
+                if ($existing) {
+                    $skipped++;
+                    continue;
+                }
+
+                $prompt = $prompts[array_rand($prompts)];
+
+                $post_data = array(
+                    'post_title' => (string) $i,
+                    'post_content' => $prompt,
+                    'post_status' => 'publish',
+                    'post_type' => 'journal_prompt',
+                    'post_name' => (string) $i
+                );
+
+                $result = wp_insert_post($post_data);
+
+                if (!is_wp_error($result)) {
+                    $created++;
+                }
+            }
+
+            // Show results message
+            add_settings_error(
+                'guided_journal_messages',
+                'prompts_created',
+                sprintf(
+                    __('Created %d new prompts. Skipped %d existing prompts.', 'guided-journal'),
+                    $created,
+                    $skipped
+                ),
+                'updated'
+            );
         }
+
+        // Display the form
         ?>
         <div class="wrap">
             <h1><?php echo esc_html(get_admin_page_title()); ?></h1>
+            <?php settings_errors('guided_journal_messages'); ?>
+
             <form method="post" action="">
                 <?php wp_nonce_field('create_prompts_nonce'); ?>
                 <p><?php _e('Click the button below to create 365 journal prompts.', 'guided-journal'); ?></p>
