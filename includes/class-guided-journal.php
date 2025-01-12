@@ -221,8 +221,35 @@ class GuidedJournal
 
         $prompt = $this->get_prompt($day);
         $entry = $this->get_entry(get_current_user_id(), $day);
+        ?>
+        <div class="container">
+            <div class="navigation-top">
+                <a href="/grid" class="contents-toggle">
+                    <?php _e('Back to Grid', 'guided-journal'); ?>
+                </a>
+            </div>
 
-        include($this->plugin_path . 'templates/entry-page.php');
+            <div class="journal-container">
+                <h2><?php printf(__('Day %d', 'guided-journal'), $day); ?></h2>
+
+                <div class="prompt"><?php echo wp_kses_post($prompt); ?></div>
+
+                <textarea id="journal-entry" class="entry-text"><?php echo esc_textarea($entry); ?></textarea>
+
+                <div class="navigation">
+                    <button class="prev-day" <?php echo ($day <= 1) ? 'disabled' : ''; ?>>
+                        <?php _e('Previous Day', 'guided-journal'); ?>
+                    </button>
+                    <button class="save-entry">
+                        <?php _e('Save Entry', 'guided-journal'); ?>
+                    </button>
+                    <button class="next-day">
+                        <?php _e('Next Day', 'guided-journal'); ?>
+                    </button>
+                </div>
+            </div>
+        </div>
+        <?php
         return ob_get_clean();
     }
 
