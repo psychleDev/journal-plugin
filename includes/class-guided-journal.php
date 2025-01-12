@@ -179,7 +179,36 @@ class GuidedJournal
     public function render_grid($atts)
     {
         ob_start();
-        include($this->plugin_path . 'templates/grid.php');
+        ?>
+        <div class="container">
+            <h1><?php _e('Guided Journal', 'guided-journal'); ?></h1>
+            <div class="prompt-grid">
+                <?php
+                $the_query = new WP_Query([
+                    'post_type' => 'journal_prompt',
+                    'nopaging' => true,
+                    'orderby' => 'title_num',
+                    'meta_key' => 'title_num',
+                    'orderby' => 'meta_value_num',
+                    'order' => 'ASC',
+                    'posts_per_page' => -1
+                ]);
+
+                if ($the_query->have_posts()):
+                    while ($the_query->have_posts()):
+                        $the_query->the_post();
+                        $number = intval(get_the_title());
+                        $formatted_number = sprintf('%02d', $number); // Pad with zeros
+                        ?>
+                        <a href="<?php the_permalink(); ?>" class="prompt-card">
+                            <span class="day-number"><?php echo esc_html($formatted_number); ?></span>
+                        </a>
+                    <?php endwhile;
+                    wp_reset_postdata();
+                endif; ?>
+            </div>
+        </div>
+        <?php
         return ob_get_clean();
     }
 
