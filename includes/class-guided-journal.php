@@ -124,7 +124,33 @@ class GuidedJournal
 
     public function render_create_prompts_page()
     {
-        // Check if form was submitted
+        // Handle delete action
+        if (isset($_POST['delete_prompts']) && check_admin_referer('create_prompts_nonce')) {
+            $args = array(
+                'post_type' => 'journal_prompt',
+                'posts_per_page' => -1,
+                'post_status' => 'any',
+                'fields' => 'ids',
+            );
+
+            $prompts = get_posts($args);
+
+            $deleted = 0;
+            foreach ($prompts as $prompt_id) {
+                if (wp_delete_post($prompt_id, true)) {
+                    $deleted++;
+                }
+            }
+
+            add_settings_error(
+                'guided_journal_messages',
+                'prompts_deleted',
+                sprintf(__('Deleted %d prompts.', 'guided-journal'), $deleted),
+                'updated'
+            );
+        }
+
+        // Handle create action
         if (isset($_POST['create_prompts']) && check_admin_referer('create_prompts_nonce')) {
             $prompts = [
                 "Write about a moment today when you felt strong.",
@@ -141,7 +167,12 @@ class GuidedJournal
                 "What's a goal you're working towards?",
                 "Write about a time you felt proud of yourself.",
                 "What does success mean to you?",
-                "Describe a place where you feel at peace."
+                "Describe a place where you feel at peace.",
+                "What's something you want to improve about yourself?",
+                "Share a memory that always makes you smile.",
+                "What are you looking forward to?",
+                "How have you grown in the past year?",
+                "What advice would you give your younger self?"
             ];
 
             $created = 0;
@@ -178,7 +209,6 @@ class GuidedJournal
                 }
             }
 
-            // Show results message
             add_settings_error(
                 'guided_journal_messages',
                 'prompts_created',
@@ -191,7 +221,7 @@ class GuidedJournal
             );
         }
 
-        // Display the form
+        // Display the admin interface
         ?>
         <div class="wrap">
             <h1><?php echo esc_html(get_admin_page_title()); ?></h1>
@@ -199,9 +229,21 @@ class GuidedJournal
 
             <form method="post" action="">
                 <?php wp_nonce_field('create_prompts_nonce'); ?>
-                <p><?php _e('Click the button below to create 365 journal prompts.', 'guided-journal'); ?></p>
-                <input type="submit" name="create_prompts" class="button button-primary"
-                    value="<?php esc_attr_e('Create Prompts', 'guided-journal'); ?>">
+
+                <div style="margin-bottom: 20px;">
+                    <h2>Create Prompts</h2>
+                    <p><?php _e('Click the button below to create 365 journal prompts.', 'guided-journal'); ?></p>
+                    <input type="submit" name="create_prompts" class="button button-primary"
+                        value="<?php esc_attr_e('Create Prompts', 'guided-journal'); ?>">
+                </div>
+
+                <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #ccc;">
+                    <h2 style="color: #dc3232;">Delete All Prompts</h2>
+                    <p><strong>Warning:</strong> This will permanently delete all existing journal prompts.</p>
+                    <input type="submit" name="delete_prompts" class="button button-link-delete"
+                        value="<?php esc_attr_e('Delete All Prompts', 'guided-journal'); ?>"
+                        onclick="return confirm('Are you sure you want to delete all prompts? This cannot be undone.');">
+                </div>
             </form>
         </div>
         <?php
