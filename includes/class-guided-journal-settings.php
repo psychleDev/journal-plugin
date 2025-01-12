@@ -1,4 +1,6 @@
 <?php
+namespace GuidedJournal;
+
 class GuidedJournalSettings
 {
     private $options;
@@ -15,17 +17,40 @@ class GuidedJournalSettings
         add_action('admin_menu', [$this, 'add_settings_page']);
         add_action('admin_init', [$this, 'register_settings']);
         add_action('wp_head', [$this, 'output_custom_colors']);
+        add_action('admin_enqueue_scripts', [$this, 'enqueue_admin_assets']);
+    }
+
+    public function enqueue_admin_assets($hook)
+    {
+        if ($hook !== 'journal_prompt_page_guided-journal-colors') {
+            return;
+        }
+
+        wp_enqueue_style(
+            'guided-journal-admin',
+            GUIDED_JOURNAL_PLUGIN_URL . 'assets/css/admin.css',
+            [],
+            GUIDED_JOURNAL_VERSION
+        );
+
+        wp_enqueue_script(
+            'guided-journal-admin',
+            GUIDED_JOURNAL_PLUGIN_URL . 'assets/js/admin.js',
+            ['jquery'],
+            GUIDED_JOURNAL_VERSION,
+            true
+        );
     }
 
     public function add_settings_page()
     {
         add_submenu_page(
-            'guided-journal',
-            'Color Settings',
-            'Color Settings',
-            'manage_options',
-            'guided-journal-colors',
-            [$this, 'render_settings_page']
+            'edit.php?post_type=journal_prompt',  // Parent slug
+            'Color Settings',                     // Page title
+            'Color Settings',                     // Menu title
+            'manage_options',                     // Capability
+            'guided-journal-colors',              // Menu slug
+            [$this, 'render_settings_page']       // Callback function
         );
     }
 
@@ -33,54 +58,23 @@ class GuidedJournalSettings
     {
         register_setting('guided_journal_colors', 'guided_journal_colors', [
             'type' => 'array',
-            'default' => $this->default_colors
+            'default' => $this->default_colors,
+            'sanitize_callback' => [$this, 'sanitize_colors']
         ]);
+    }
 
-        add_settings_section(
-            'guided_journal_colors_section',
-            'Color Scheme Settings',
-            [$this, 'render_section_description'],
-            'guided_journal_colors'
-        );
-
-        $color_fields = [
-            'background' => 'Main Background Color',
-            'card_background' => 'Card Background Color',
-            'text' => 'Text Color',
-            'accent' => 'Accent Color',
-            'container_background' => 'Container Background Color'
-        ];
-
-        foreach ($color_fields as $key => $label) {
-            add_settings_field(
-                'guided_journal_color_' . $key,
-                $label,
-                [$this, 'render_color_field'],
-                'guided_journal_colors',
-                'guided_journal_colors_section',
-                ['key' => $key]
-            );
+    public function sanitize_colors($input)
+    {
+        $sanitized = [];
+        foreach ($this->default_colors as $key => $default) {
+            if (isset($input[$key])) {
+                $color = sanitize_hex_color($input[$key]);
+                $sanitized[$key] = $color ? $color : $default;
+            } else {
+                $sanitized[$key] = $default;
+            }
         }
-    }
-
-    public function render_section_description()
-    {
-        echo '<p>Customize the color scheme of your guided journal.</p>';
-    }
-
-    public function render_color_field($args)
-    {
-        $options = get_option('guided_journal_colors', $this->default_colors);
-        $value = isset($options[$args['key']]) ? $options[$args['key']] : $this->default_colors[$args['key']];
-        ?>
-        <input type="color" id="guided_journal_color_<?php echo esc_attr($args['key']); ?>"
-            name="guided_journal_colors[<?php echo esc_attr($args['key']); ?>]" value="<?php echo esc_attr($value); ?>">
-        <button type="button" class="button button-secondary reset-color"
-            data-default="<?php echo esc_attr($this->default_colors[$args['key']]); ?>"
-            data-target="guided_journal_color_<?php echo esc_attr($args['key']); ?>">
-            Reset to Default
-        </button>
-        <?php
+        return $sanitized;
     }
 
     public function render_settings_page()
@@ -91,22 +85,53 @@ class GuidedJournalSettings
         ?>
         <div class="wrap">
             <h1><?php echo esc_html(get_admin_page_title()); ?></h1>
+
+            <div class="color-settings-preview">
+                <h3>Color Settings</h3>
+                <p>Customize the appearance of your journal by adjusting the colors below. Changes will be reflected immediately
+                    on your site.</p>
+            </div>
+
             <form action="options.php" method="post">
-                <?php
-                settings_fields('guided_journal_colors');
-                do_settings_sections('guided_journal_colors');
-                submit_button('Save Colors');
-                ?>
+                <?php settings_fields('guided_journal_colors'); ?>
+
+                <div class="color-settings-grid">
+                    <?php
+                    $options = get_option('guided_journal_colors', $this->default_colors);
+                    $color_fields = [
+                        'background' => ['Main Background', 'The main background color of the journal'],
+                        'card_background' => ['Card Background', 'Background color for journal entry cards'],
+                        'text' => ['Text Color', 'Color for all text content'],
+                        'accent' => ['Accent Color', 'Color for buttons and highlights'],
+                        'container_background' => ['Container Background', 'Background color for content containers']
+                    ];
+
+                    foreach ($color_fields as $key => $labels) {
+                        $value = isset($options[$key]) ? $options[$key] : $this->default_colors[$key];
+                        ?>
+                        <div class="color-field">
+                            <h4><?php echo esc_html($labels[0]); ?></h4>
+                            <p class="description"><?php echo esc_html($labels[1]); ?></p>
+                            <div class="color-inputs">
+                                <input type="color" id="guided_journal_color_<?php echo esc_attr($key); ?>"
+                                    name="guided_journal_colors[<?php echo esc_attr($key); ?>]"
+                                    value="<?php echo esc_attr($value); ?>">
+                                <input type="text" value="<?php echo esc_attr($value); ?>" class="color-hex-value"
+                                    data-color-input="guided_journal_color_<?php echo esc_attr($key); ?>">
+                                <button type="button" class="button button-secondary reset-color"
+                                    data-default="<?php echo esc_attr($this->default_colors[$key]); ?>"
+                                    data-target="guided_journal_color_<?php echo esc_attr($key); ?>">
+                                    Reset
+                                </button>
+                            </div>
+                        </div>
+                        <?php
+                    }
+                    ?>
+                </div>
+
+                <?php submit_button('Save Color Settings'); ?>
             </form>
-            <script>
-                jQuery(document).ready(function ($) {
-                    $('.reset-color').on('click', function () {
-                        const defaultColor = $(this).data('default');
-                        const targetId = $(this).data('target');
-                        $('#' + targetId).val(defaultColor);
-                    });
-                });
-            </script>
         </div>
         <?php
     }
@@ -137,6 +162,3 @@ class GuidedJournalSettings
         <?php
     }
 }
-
-// Initialize settings
-$guided_journal_settings = new GuidedJournalSettings();
