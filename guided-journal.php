@@ -1,6 +1,6 @@
 <?php
 /**
- * Plugin Name: 30-Day Guided Journal
+ * Plugin Name: Guided Journal
  * Description: A guided journal system with Circle Community SSO integration
  * Version: 1.0
  * Author: Your Name
@@ -17,7 +17,6 @@ define('GUIDED_JOURNAL_PLUGIN_URL', plugin_dir_url(__FILE__));
 
 // Include the main class files directly
 require_once GUIDED_JOURNAL_PLUGIN_DIR . 'includes/class-guided-journal.php';
-// Initialize the roles management
 require_once GUIDED_JOURNAL_PLUGIN_DIR . 'includes/class-journal-roles.php';
 
 // Initialize plugin
@@ -31,14 +30,12 @@ function guided_journal_init()
 
 // Auth0 user handling
 add_action('auth0_user_login', function ($user_id, $user_data) {
-
     // check if Auth0 user is email verified
     if (!isset($user_data->email_verified) || !$user_data->email_verified) {
         // Redirect to email verification page
         wp_redirect(home_url('/verify-email/'));
         exit;
     }
-
 }, 10, 2);
 
 // Start the plugin on init to ensure post types are registered early
@@ -73,18 +70,6 @@ function guided_journal_activate()
     require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
     dbDelta($sql);
 
-    // Set default options
-
     // Clean up rewrite rules
     flush_rewrite_rules();
 }
-
-// Add debug logging temporarily
-add_action('template_include', function ($template) {
-    if (is_singular('journal_prompt')) {
-        error_log('Template being loaded: ' . $template);
-        error_log('Is singular journal_prompt: true');
-        error_log('Current post type: ' . get_post_type());
-    }
-    return $template;
-}, 1);
