@@ -19,7 +19,7 @@ class GuidedJournal
     {
         add_action('init', [$this, 'register_post_types']);
         add_filter('template_include', [$this, 'load_journal_templates'], 99);
-        add_action('admin_menu', [$this, 'add_admin_menu']);
+        // add_action('admin_menu', [$this, 'add_admin_menu']);
         add_shortcode('journal_grid', [$this, 'render_grid']);
         add_shortcode('journal_entry', [$this, 'render_entry_page']);
         add_action('wp_enqueue_scripts', [$this, 'enqueue_assets']);
@@ -142,34 +142,34 @@ class GuidedJournal
         ]);
     }
 
-    public function add_admin_menu()
-    {
-        // Add menu page for Journal Prompts
-        add_menu_page(
-            __('Journal Prompts', 'guided-journal'),
-            __('Journal Prompts', 'guided-journal'),
-            'manage_options',
-            'guided-journal',
-            [$this, 'render_admin_page'],
-            'dashicons-book-alt',
-            20
-        );
+    // public function add_admin_menu()
+    // {
+    //     // Add menu page for Journal Prompts
+    //     add_menu_page(
+    //         __('Journal Prompts', 'guided-journal'),
+    //         __('Journal Prompts', 'guided-journal'),
+    //         'manage_options',
+    //         'guided-journal',
+    //         [$this, 'render_admin_page'],
+    //         'dashicons-book-alt',
+    //         20
+    //     );
 
-        // Add submenu for creating prompts
-        add_submenu_page(
-            'guided-journal',
-            __('Create Prompts', 'guided-journal'),
-            __('Create Prompts', 'guided-journal'),
-            'manage_options',
-            'guided-journal-create',
-            [$this, 'render_create_prompts_page']
-        );
-    }
+    //     // Add submenu for creating prompts
+    //     add_submenu_page(
+    //         'guided-journal',
+    //         __('Create Prompts', 'guided-journal'),
+    //         __('Create Prompts', 'guided-journal'),
+    //         'manage_options',
+    //         'guided-journal-create',
+    //         [$this, 'render_create_prompts_page']
+    //     );
+    // }
 
-    public function render_admin_page()
-    {
-        include($this->plugin_path . 'templates/admin-page.php');
-    }
+    // public function render_admin_page()
+    // {
+    //     include($this->plugin_path . 'templates/admin-page.php');
+    // }
 
     public function render_create_prompts_page()
     {
