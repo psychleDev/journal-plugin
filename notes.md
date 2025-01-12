@@ -1,0 +1,5 @@
+https://members.risingfather.com/index.php?auth0=1&code=YSixf3VYHGCNSZ3CntS8EiMLo4HK9tvTTkoPPM-b-113i&state=eyJpbnRlcmltIjpmYWxzZSwibm9uY2UiOiJkZTE3Yjk0ZjE1MzNhYWI1ODQ0MDBhZjA4ZTNmYjk4ZTUxYjhmMmE3ZGYzNGQ4MWI0MGQzZDczOWU2MDQ2NTE2IiwicmVkaXJlY3RfdG8iOiJodHRwczpcL1wvbWVtYmVycy5yaXNpbmdmYXRoZXIuY29tXC9ob21lIn0%3D
+
+
+/wp-content/plugins/auth0/vendor/auth0/php-jwt/src/Claim/Basic.php
+

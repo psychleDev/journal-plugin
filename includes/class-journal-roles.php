@@ -16,6 +16,7 @@ class JournalRoles
 
         // Auth0 user handling
         add_action('auth0_user_login', function ($user_id, $user_data) {
+
             if (!$user_id) {
                 $user_id = $this->create_auth0_user($user_data);
             }
@@ -198,8 +199,6 @@ class JournalRoles
             }
         }
     }
-
-
     private function create_or_get_error_page()
     {
         $page = get_page_by_path('page-verify-email');
