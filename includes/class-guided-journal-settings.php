@@ -44,13 +44,25 @@ class GuidedJournalSettings
 
     public function add_settings_page()
     {
+        // Add the submenu to the Journal Prompts menu
+        add_menu_page(
+            'Journal Settings',          // Page title
+            'Journal Settings',          // Menu title
+            'manage_options',            // Capability
+            'journal-settings',          // Menu slug
+            [$this, 'render_settings_page'], // Callback function
+            'dashicons-admin-appearance', // Icon
+            21                          // Position after Journal Prompts
+        );
+
+        // Add Color Settings as the first submenu
         add_submenu_page(
-            'edit.php?post_type=journal_prompt',  // Parent slug
-            'Color Settings',                     // Page title
-            'Color Settings',                     // Menu title
-            'manage_options',                     // Capability
-            'guided-journal-colors',              // Menu slug
-            [$this, 'render_settings_page']       // Callback function
+            'journal-settings',         // Parent slug
+            'Color Settings',           // Page title
+            'Color Settings',           // Menu title
+            'manage_options',           // Capability
+            'journal-settings',         // Menu slug (same as parent to make it the default page)
+            [$this, 'render_settings_page'] // Callback function
         );
     }
 
