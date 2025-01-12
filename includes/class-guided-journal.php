@@ -166,10 +166,10 @@ class GuidedJournal
         );
     }
 
-    public function render_admin_page()
-    {
-        include($this->plugin_path . 'templates/admin-page.php');
-    }
+    // public function render_admin_page()
+    // {
+    //     include($this->plugin_path . 'templates/admin-page.php');
+    // }
 
     public function render_create_prompts_page()
     {
