@@ -52,29 +52,28 @@ class GuidedJournal
         });
     }
 
-    // ... [rest of your existing methods remain the same, just remove the inner content for brevity]
-    public function add_admin_menu()
+    /**
+     * Load journal templates
+     */
+    public function load_journal_templates($template)
     {
-        // Add menu page for Journal Prompts
-        add_menu_page(
-            __('Journal Prompts', 'guided-journal'),
-            __('Journal Prompts', 'guided-journal'),
-            'manage_options',
-            'guided-journal',
-            [$this, 'render_admin_page'],
-            'dashicons-book-alt',
-            20
-        );
+        if (is_singular('journal_prompt')) {
+            // First try to find the template in the theme
+            $theme_template = locate_template('single-journal_prompt.php');
 
-        // Add submenu for creating prompts
-        add_submenu_page(
-            'guided-journal',
-            __('Create Prompts', 'guided-journal'),
-            __('Create Prompts', 'guided-journal'),
-            'manage_options',
-            'guided-journal-create',
-            [$this, 'render_create_prompts_page']
-        );
+            if ($theme_template) {
+                return $theme_template;
+            }
+
+            // If not found in theme, use plugin template
+            $plugin_template = $this->plugin_path . 'templates/single-journal_prompt.php';
+
+            if (file_exists($plugin_template)) {
+                return $plugin_template;
+            }
+        }
+
+        return $template;
     }
 
     public function register_post_types()
@@ -83,7 +82,14 @@ class GuidedJournal
             'labels' => [
                 'name' => __('Journal Prompts', 'guided-journal'),
                 'singular_name' => __('Journal Prompt', 'guided-journal'),
-                // ... rest of your labels
+                'add_new' => __('Add New', 'guided-journal'),
+                'add_new_item' => __('Add New Journal Prompt', 'guided-journal'),
+                'edit_item' => __('Edit Journal Prompt', 'guided-journal'),
+                'new_item' => __('New Journal Prompt', 'guided-journal'),
+                'view_item' => __('View Journal Prompt', 'guided-journal'),
+                'search_items' => __('Search Journal Prompts', 'guided-journal'),
+                'not_found' => __('No journal prompts found', 'guided-journal'),
+                'not_found_in_trash' => __('No journal prompts found in trash', 'guided-journal'),
             ],
             'public' => true,
             'publicly_queryable' => true,
@@ -113,5 +119,165 @@ class GuidedJournal
         register_post_type('journal_prompt', $args);
     }
 
-    // Keep all your other existing methods...
+    public function enqueue_assets()
+    {
+        wp_enqueue_style(
+            'guided-journal-style',
+            GUIDED_JOURNAL_PLUGIN_URL . 'assets/css/style.css',
+            [],
+            GUIDED_JOURNAL_VERSION
+        );
+
+        wp_enqueue_script(
+            'guided-journal-script',
+            GUIDED_JOURNAL_PLUGIN_URL . 'assets/js/script.js',
+            ['jquery'],
+            GUIDED_JOURNAL_VERSION,
+            true
+        );
+
+        wp_localize_script('guided-journal-script', 'journalAjax', [
+            'ajaxurl' => admin_url('admin-ajax.php'),
+            'nonce' => wp_create_nonce('journal_nonce'),
+        ]);
+    }
+
+    public function add_admin_menu()
+    {
+        // Add menu page for Journal Prompts
+        add_menu_page(
+            __('Journal Prompts', 'guided-journal'),
+            __('Journal Prompts', 'guided-journal'),
+            'manage_options',
+            'guided-journal',
+            [$this, 'render_admin_page'],
+            'dashicons-book-alt',
+            20
+        );
+
+        // Add submenu for creating prompts
+        add_submenu_page(
+            'guided-journal',
+            __('Create Prompts', 'guided-journal'),
+            __('Create Prompts', 'guided-journal'),
+            'manage_options',
+            'guided-journal-create',
+            [$this, 'render_create_prompts_page']
+        );
+    }
+
+    public function render_admin_page()
+    {
+        include($this->plugin_path . 'templates/admin-page.php');
+    }
+
+    public function render_create_prompts_page()
+    {
+        include($this->plugin_path . 'templates/create-prompts-page.php');
+    }
+
+    public function render_grid($atts)
+    {
+        ob_start();
+        include($this->plugin_path . 'templates/grid.php');
+        return ob_get_clean();
+    }
+
+    public function render_entry_page($atts)
+    {
+        ob_start();
+        $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+        $slug = basename($path);
+        $day = str_replace('day-', '', $slug);
+
+        $prompt = $this->get_prompt($day);
+        $entry = $this->get_entry(get_current_user_id(), $day);
+
+        include($this->plugin_path . 'templates/entry-page.php');
+        return ob_get_clean();
+    }
+
+    private function get_prompt($day)
+    {
+        $prompt = get_page_by_path($day, OBJECT, 'journal_prompt');
+        return $prompt ? apply_filters('the_content', $prompt->post_content) : sprintf(__('Prompt for day %d', 'guided-journal'), $day);
+    }
+
+    private function get_entry($user_id, $day)
+    {
+        global $wpdb;
+        return $wpdb->get_var($wpdb->prepare(
+            "SELECT entry_text FROM {$wpdb->prefix}journal_entries 
+             WHERE user_id = %d AND day_number = %d",
+            $user_id,
+            $day
+        ));
+    }
+
+    public function save_entry()
+    {
+        check_ajax_referer('journal_nonce', 'nonce');
+
+        $user = wp_get_current_user();
+        if (!in_array('menoffire', $user->roles) && !in_array('administrator', $user->roles) && !in_array('ignite30', $user->roles)) {
+            wp_send_json_error(__('Unauthorized access', 'guided-journal'));
+        }
+
+        $user_id = get_current_user_id();
+        $day = intval($_POST['day']);
+        $text = sanitize_textarea_field($_POST['text']);
+
+        global $wpdb;
+        $table = $wpdb->prefix . 'journal_entries';
+
+        $existing_entry = $wpdb->get_row($wpdb->prepare(
+            "SELECT id FROM {$table} WHERE user_id = %d AND day_number = %d",
+            $user_id,
+            $day
+        ));
+
+        if ($existing_entry) {
+            $result = $wpdb->update(
+                $table,
+                ['entry_text' => $text],
+                ['user_id' => $user_id, 'day_number' => $day],
+                ['%s'],
+                ['%d', '%d']
+            );
+        } else {
+            $result = $wpdb->insert(
+                $table,
+                [
+                    'user_id' => $user_id,
+                    'day_number' => $day,
+                    'entry_text' => $text
+                ],
+                ['%d', '%d', '%s']
+            );
+        }
+
+        if ($result === false) {
+            wp_send_json_error(__('Failed to save entry', 'guided-journal'));
+        }
+
+        wp_send_json_success(['message' => __('Entry saved successfully', 'guided-journal')]);
+    }
+
+    public function get_entries()
+    {
+        check_ajax_referer('journal_nonce', 'nonce');
+
+        if (!is_user_logged_in()) {
+            wp_send_json_error(__('Unauthorized access', 'guided-journal'));
+        }
+
+        global $wpdb;
+        $entries = $wpdb->get_results($wpdb->prepare(
+            "SELECT day_number, created_at FROM {$wpdb->prefix}journal_entries 
+             WHERE user_id = %d ORDER BY day_number ASC",
+            get_current_user_id()
+        ));
+
+        wp_send_json_success(['entries' => $entries]);
+    }
 }
