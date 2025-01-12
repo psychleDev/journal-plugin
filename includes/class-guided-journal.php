@@ -148,8 +148,11 @@ class GuidedJournal
             $skipped = 0;
 
             for ($i = 1; $i <= 365; $i++) {
+                // Format number with leading zeros
+                $formatted_number = sprintf('%03d', $i);
+
                 // Check if prompt already exists
-                $existing = get_page_by_path((string) $i, OBJECT, 'journal_prompt');
+                $existing = get_page_by_path($formatted_number, OBJECT, 'journal_prompt');
 
                 if ($existing) {
                     $skipped++;
@@ -159,16 +162,18 @@ class GuidedJournal
                 $prompt = $prompts[array_rand($prompts)];
 
                 $post_data = array(
-                    'post_title' => (string) $i,
+                    'post_title' => $formatted_number,
                     'post_content' => $prompt,
                     'post_status' => 'publish',
                     'post_type' => 'journal_prompt',
-                    'post_name' => (string) $i
+                    'post_name' => $formatted_number,
                 );
 
-                $result = wp_insert_post($post_data);
+                $post_id = wp_insert_post($post_data);
 
-                if (!is_wp_error($result)) {
+                if (!is_wp_error($post_id)) {
+                    // Add the numeric value as meta for proper sorting
+                    add_post_meta($post_id, 'title_num', $i, true);
                     $created++;
                 }
             }
@@ -356,16 +361,21 @@ class GuidedJournal
                 $the_query = new WP_Query([
                     'post_type' => 'journal_prompt',
                     'nopaging' => true,
-                    'orderby' => 'title',
+                    'orderby' => 'title_num',
+                    'meta_key' => 'title_num',
+                    'orderby' => 'meta_value_num',
                     'order' => 'ASC',
+                    'posts_per_page' => -1
                 ]);
 
                 if ($the_query->have_posts()):
                     while ($the_query->have_posts()):
                         $the_query->the_post();
+                        $number = intval(get_the_title());
+                        $formatted_number = sprintf('%02d', $number); // Pad with zeros
                         ?>
                         <a href="<?php the_permalink(); ?>" class="prompt-card">
-                            <span class="day-number"><?php the_title(); ?></span>
+                            <span class="day-number"><?php echo esc_html($formatted_number); ?></span>
                         </a>
                     <?php endwhile;
                     wp_reset_postdata();
