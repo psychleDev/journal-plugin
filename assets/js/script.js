@@ -2,7 +2,14 @@ jQuery(document).ready(function ($) {
     // Save entry handler
     $('.save-entry').on('click', function () {
         const currentDay = getCurrentDay();
-        const text = $('#journal-entry').val();
+        let text;
+
+        // Get content from WordPress editor if available, otherwise from textarea
+        if (typeof tinyMCE !== 'undefined' && tinyMCE.get('journal-entry')) {
+            text = tinyMCE.get('journal-entry').getContent();
+        } else {
+            text = $('#journal-entry').val();
+        }
 
         $.ajax({
             url: journalAjax.ajaxurl,
@@ -94,5 +101,28 @@ jQuery(document).ready(function ($) {
                 }
             }
         });
+    });
+
+    // Initialize WordPress editor if available
+    if (typeof tinyMCE !== 'undefined') {
+        tinyMCE.on('AddEditor', function (e) {
+            // Add auto-save functionality
+            let autoSaveTimeout;
+            e.editor.on('change', function () {
+                clearTimeout(autoSaveTimeout);
+                autoSaveTimeout = setTimeout(function () {
+                    $('.save-entry').click();
+                }, 60000); // Auto-save after 1 minute of inactivity
+            });
+        });
+    }
+
+    // Handle keyboard shortcuts
+    $(document).on('keydown', function (e) {
+        // Ctrl/Cmd + S to save
+        if ((e.ctrlKey || e.metaKey) && e.keyCode === 83) {
+            e.preventDefault();
+            $('.save-entry').click();
+        }
     });
 });
