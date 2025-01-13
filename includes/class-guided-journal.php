@@ -271,13 +271,14 @@ class GuidedJournal
 
             <div class="journal-container">
                 <h2><?php printf(__('Day %d', 'guided-journal'), $day); ?></h2>
+
                 <div class="prompt"><?php echo wp_kses_post($prompt); ?></div>
     
                         <?php
-                        // Initialize WordPress editor
                         $editor_settings = array(
                             'textarea_name' => 'journal-entry',
-                            'textarea_rows' => 10,
+                            'textarea_rows' => 20,
+                            'editor_height' => 400,
                             'media_buttons' => true,
                             'tinymce' => array(
                                 'toolbar1' => 'formatselect,bold,italic,underline,bullist,numlist,link,unlink,undo,redo',
@@ -289,9 +290,7 @@ class GuidedJournal
                         wp_editor($entry, 'journal-entry', $editor_settings);
                         ?>
     
-                        <div class=" save-status" style="display: none;">All changes saved</div>
-
-                <div class="navigation">
+                        <div class=" navigation">
                     <button class="prev-day" <?php echo ($day <= 1) ? 'disabled' : ''; ?>>
                                 <?php _e('Previous Day', 'guided-journal'); ?>
                             </button>
@@ -428,7 +427,7 @@ class GuidedJournal
 
         ob_start();
         ?>
-                    <div class=" journal-stats-summary">
+                            <div class=" journal-stats-summary">
                         <h3><?php _e('Your Writing Stats', 'guided-journal'); ?></h3>
                         <div class="stats-grid">
                             <div class="stat-item">
