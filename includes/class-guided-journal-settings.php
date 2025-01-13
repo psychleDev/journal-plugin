@@ -176,3 +176,16 @@ class GuidedJournalSettings
         <?php
     }
 }
+// Add completed entry color setting
+register_setting('guided_journal_settings', 'gj_completed_color');
+
+add_settings_field(
+    'gj_completed_color',
+    'Completed Entry Color',
+    function () {
+        $color = get_option('gj_completed_color', '#00FF00'); // Default green
+        echo "<input type='color' name='gj_completed_color' value='{$color}'>";
+    },
+    'guided_journal_settings',
+    'guided_journal_settings_section'
+);
