@@ -42,7 +42,11 @@ jQuery(document).ready(function ($) {
         if (!$(this).prop('disabled')) {
             const currentPath = window.location.pathname;
             const day = parseInt(currentPath.split('/').filter(Boolean).pop()) || 1;
-            window.location.href = `../${day + 1}`;
+            const maxDay = parseInt(journalAjax.maxDay) || 1;
+
+            if (day < maxDay) {
+                window.location.href = `../${day + 1}`;
+            }
         }
     });
 

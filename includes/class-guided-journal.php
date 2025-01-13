@@ -4,17 +4,14 @@ namespace GuidedJournal;
 use \WP_Query;
 use \WP_Error;
 
-class GuidedJournal
-{
+class GuidedJournal {
     private $plugin_path;
 
-    public function __construct()
-    {
+    public function __construct() {
         $this->plugin_path = GUIDED_JOURNAL_PLUGIN_DIR;
     }
 
-    public function init()
-    {
+    public function init() {
         add_action('init', [$this, 'register_post_types']);
         add_filter('template_include', [$this, 'load_journal_templates'], 99);
         add_shortcode('journal_grid', [$this, 'render_grid']);
@@ -24,7 +21,7 @@ class GuidedJournal
         add_action('wp_ajax_get_journal_entries', [$this, 'get_entries']);
 
         // Basic access control - must be logged in
-        add_action('template_redirect', function () {
+        add_action('template_redirect', function() {
             if (
                 strpos($_SERVER['REQUEST_URI'], '/grid') !== false ||
                 strpos($_SERVER['REQUEST_URI'], '/entry') !== false ||
@@ -38,8 +35,7 @@ class GuidedJournal
         });
     }
 
-    public function register_post_types()
-    {
+    public function register_post_types() {
         $args = [
             'labels' => [
                 'name' => __('Journal Prompts', 'guided-journal'),
@@ -81,17 +77,16 @@ class GuidedJournal
         register_post_type('journal_prompt', $args);
     }
 
-    public function load_journal_templates($template)
-    {
+    public function load_journal_templates($template) {
         if (is_singular('journal_prompt')) {
             $theme_template = locate_template('single-journal_prompt.php');
-
+            
             if ($theme_template) {
                 return $theme_template;
             }
-
+            
             $plugin_template = $this->plugin_path . 'templates/single-journal_prompt.php';
-
+            
             if (file_exists($plugin_template)) {
                 return $plugin_template;
             }
@@ -99,8 +94,7 @@ class GuidedJournal
         return $template;
     }
 
-    public function enqueue_assets()
-    {
+    public function enqueue_assets() {
         wp_enqueue_style(
             'guided-journal-style',
             GUIDED_JOURNAL_PLUGIN_URL . 'assets/css/style.css',
@@ -116,14 +110,17 @@ class GuidedJournal
             true
         );
 
+        // Get the total number of prompts
+        $max_day = wp_count_posts('journal_prompt')->publish;
+
         wp_localize_script('guided-journal-script', 'journalAjax', [
             'ajaxurl' => admin_url('admin-ajax.php'),
             'nonce' => wp_create_nonce('journal_nonce'),
+            'maxDay' => $max_day
         ]);
     }
 
-    public function render_grid($atts)
-    {
+    public function render_grid($atts) {
         if (!is_user_logged_in()) {
             return sprintf(
                 '<p>%s</p>',
@@ -157,7 +154,7 @@ class GuidedJournal
                         <a href="<?php the_permalink(); ?>" class="prompt-card">
                             <span class="day-number"><?php echo esc_html($formatted_number); ?></span>
                         </a>
-                        <?php
+                    <?php
                     endwhile;
                     wp_reset_postdata();
                 endif;
@@ -168,8 +165,7 @@ class GuidedJournal
         return ob_get_clean();
     }
 
-    public function render_entry_page($atts)
-    {
+    public function render_entry_page($atts) {
         if (!is_user_logged_in()) {
             return sprintf(
                 '<p>%s</p>',
@@ -207,7 +203,7 @@ class GuidedJournal
                     <button class="save-entry">
                         <?php _e('Save Entry', 'guided-journal'); ?>
                     </button>
-                    <button class="next-day">
+                    <button class="next-day" <?php echo ($day >= wp_count_posts('journal_prompt')->publish) ? 'disabled' : ''; ?>>
                         <?php _e('Next Day', 'guided-journal'); ?>
                     </button>
                 </div>
@@ -217,14 +213,12 @@ class GuidedJournal
         return ob_get_clean();
     }
 
-    private function get_prompt($day)
-    {
+    private function get_prompt($day) {
         $prompt = get_page_by_path($day, OBJECT, 'journal_prompt');
         return $prompt ? apply_filters('the_content', $prompt->post_content) : sprintf(__('Prompt for day %d', 'guided-journal'), $day);
     }
 
-    private function get_entry($user_id, $day)
-    {
+    private function get_entry($user_id, $day) {
         global $wpdb;
         return $wpdb->get_var($wpdb->prepare(
             "SELECT entry_text FROM {$wpdb->prefix}journal_entries 
@@ -234,8 +228,7 @@ class GuidedJournal
         ));
     }
 
-    public function save_entry()
-    {
+    public function save_entry() {
         check_ajax_referer('journal_nonce', 'nonce');
 
         if (!is_user_logged_in()) {
@@ -282,8 +275,7 @@ class GuidedJournal
         wp_send_json_success(['message' => __('Entry saved successfully', 'guided-journal')]);
     }
 
-    public function get_entries()
-    {
+    public function get_entries() {
         check_ajax_referer('journal_nonce', 'nonce');
 
         if (!is_user_logged_in()) {
