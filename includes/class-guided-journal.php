@@ -128,7 +128,14 @@ class GuidedJournal {
                 wp_login_url(get_permalink())
             );
         }
-
+    
+        // Get completed entries for current user
+        global $wpdb;
+        $completed_entries = $wpdb->get_col($wpdb->prepare(
+            "SELECT day_number FROM {$wpdb->prefix}journal_entries WHERE user_id = %d",
+            get_current_user_id()
+        ));
+    
         ob_start();
         ?>
         <div class="container">
@@ -144,14 +151,15 @@ class GuidedJournal {
                     'order' => 'ASC',
                     'posts_per_page' => -1
                 ]);
-
+    
                 if ($the_query->have_posts()):
                     while ($the_query->have_posts()):
                         $the_query->the_post();
                         $number = intval(get_the_title());
                         $formatted_number = sprintf('%02d', $number);
+                        $completed_class = in_array($number, $completed_entries) ? 'completed' : '';
                         ?>
-                        <a href="<?php the_permalink(); ?>" class="prompt-card">
+                        <a href="<?php the_permalink(); ?>" class="prompt-card <?php echo esc_attr($completed_class); ?>">
                             <span class="day-number"><?php echo esc_html($formatted_number); ?></span>
                         </a>
                     <?php
@@ -164,6 +172,7 @@ class GuidedJournal {
         <?php
         return ob_get_clean();
     }
+    
 
     public function render_entry_page($atts) {
         if (!is_user_logged_in()) {
