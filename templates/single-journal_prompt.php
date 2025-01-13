@@ -15,13 +15,6 @@ get_header();
             <article id="post-<?php the_ID(); ?>" <?php post_class(); ?>>
                 <div class="entry-content">
                     <?php
-                    wp_link_pages(array(
-                        'before' => '<div class="page-links">' . esc_html__('Pages:', 'guided-journal'),
-                        'after' => '</div>',
-                    ));
-                    ?>
-
-                    <?php
                     if (is_user_logged_in()) {
                         echo do_shortcode("[journal_entry]");
                     } else {

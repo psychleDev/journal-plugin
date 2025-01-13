@@ -134,19 +134,77 @@ class GuidedJournal {
                 wp_login_url(get_permalink())
             );
         }
-
-        // Get completed entries for current user
+    
+        // Get completed entries and stats for current user
         global $wpdb;
         $completed_entries = $wpdb->get_col($wpdb->prepare(
             "SELECT day_number FROM {$wpdb->prefix}journal_entries WHERE user_id = %d",
             get_current_user_id()
         ));
-
+    
+        // Get total words written
+        $total_words = $wpdb->get_var($wpdb->prepare(
+            "SELECT SUM(word_count) FROM {$wpdb->prefix}journal_stats WHERE user_id = %d",
+            get_current_user_id()
+        ));
+    
+        // Calculate streak
+        $streak = $this->calculate_streak(get_current_user_id());
+    
+        // Calculate completion percentage
+        $total_prompts = wp_count_posts('journal_prompt')->publish;
+        $completion_percentage = $total_prompts > 0 ? round((count($completed_entries) / $total_prompts) * 100) : 0;
+    
         ob_start();
         ?>
         <div class="container">
             <h1><?php _e('Guided Journal', 'guided-journal'); ?></h1>
-
+    
+            <!-- Stats Dashboard -->
+            <div class="journal-dashboard">
+                <div class="stats-overview">
+                    <div class="stat-card">
+                        <span class="stat-icon">📝</span>
+                        <div class="stat-content">
+                            <span class="stat-value"><?php echo count($completed_entries); ?></span>
+                            <span class="stat-label"><?php _e('Entries Written', 'guided-journal'); ?></span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-icon">🔥</span>
+                        <div class="stat-content">
+                            <span class="stat-value"><?php echo $streak; ?></span>
+                            <span class="stat-label"><?php _e('Day Streak', 'guided-journal'); ?></span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-icon">📊</span>
+                        <div class="stat-content">
+                            <span class="stat-value"><?php echo number_format($total_words); ?></span>
+                            <span class="stat-label"><?php _e('Total Words', 'guided-journal'); ?></span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-icon">✅</span>
+                        <div class="stat-content">
+                            <span class="stat-value"><?php echo $completion_percentage; ?>%</span>
+                            <span class="stat-label"><?php _e('Completed', 'guided-journal'); ?></span>
+                        </div>
+                    </div>
+                </div>
+    
+                <!-- Progress bar -->
+                <div class="progress-section">
+                    <div class="progress-label">
+                        <span><?php _e('Journal Progress', 'guided-journal'); ?></span>
+                        <span class="progress-percentage"><?php echo $completion_percentage; ?>%</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: <?php echo $completion_percentage; ?>%"></div>
+                    </div>
+                </div>
+            </div>
+    
             <div class="prompt-grid">
                 <?php
                 $the_query = new WP_Query([
@@ -158,7 +216,7 @@ class GuidedJournal {
                     'order' => 'ASC',
                     'posts_per_page' => -1
                 ]);
-
+    
                 if ($the_query->have_posts()):
                     while ($the_query->have_posts()):
                         $the_query->the_post();
@@ -166,7 +224,7 @@ class GuidedJournal {
                         $formatted_number = sprintf('%02d', $number);
                         $completed_class = in_array($number, $completed_entries) ? 'completed' : '';
                         ?>
-                        <a href="<?php the_permalink(); ?>" class="prompt-card <?php echo esc_attr($completed_class); ?>">
+                        <a href="<?php the_permalink(); ?>" class="prompt-card <?php echo esc_attr($completed_class); ?>" data-day="<?php echo esc_attr($number); ?>">
                             <span class="day-number"><?php echo esc_html($formatted_number); ?></span>
                         </a>
                         <?php
@@ -178,6 +236,46 @@ class GuidedJournal {
         </div>
         <?php
         return ob_get_clean();
+    }
+    
+    private function calculate_streak($user_id) {
+        global $wpdb;
+        
+        $entries = $wpdb->get_results($wpdb->prepare(
+            "SELECT DATE(created_at) as entry_date 
+            FROM {$wpdb->prefix}journal_entries 
+            WHERE user_id = %d 
+            ORDER BY created_at DESC",
+            $user_id
+        ));
+    
+        if (empty($entries)) {
+            return 0;
+        }
+    
+        $streak = 1;
+        $last_date = strtotime($entries[0]->entry_date);
+        $today = strtotime('today');
+    
+        // Break streak if no entry today or yesterday
+        if ($last_date < strtotime('yesterday')) {
+            return 0;
+        }
+    
+        // Calculate consecutive days
+        for ($i = 1; $i < count($entries); $i++) {
+            $current_date = strtotime($entries[$i]->entry_date);
+            $date_diff = round(($last_date - $current_date) / (60 * 60 * 24));
+            
+            if ($date_diff == 1) {
+                $streak++;
+                $last_date = $current_date;
+            } else {
+                break;
+            }
+        }
+    
+        return $streak;
     }
 
     public function render_entry_page($atts) {
