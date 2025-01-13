@@ -1,8 +1,7 @@
 jQuery(document).ready(function ($) {
     // Save entry handler
     $('.save-entry').on('click', function () {
-        const currentPath = window.location.pathname;
-        const day = parseInt(currentPath.split('/').filter(Boolean).pop()) || 1;
+        const currentDay = getCurrentDay();
         const text = $('#journal-entry').val();
 
         $.ajax({
@@ -11,7 +10,7 @@ jQuery(document).ready(function ($) {
             data: {
                 action: 'save_journal_entry',
                 nonce: journalAjax.nonce,
-                day: day,
+                day: currentDay,
                 text: text
             },
             success: function (response) {
@@ -25,54 +24,35 @@ jQuery(document).ready(function ($) {
     });
 
     // Navigation handlers
-    $('.prev-day').on('click', function () {
-        if (!$(this).prop('disabled')) {
-            const currentDay = getCurrentDayNumber();
-            if (currentDay > 1) {
-                navigateToDay(currentDay - 1);
-            }
+    $('.prev-day, .next-day').on('click', function () {
+        if ($(this).prop('disabled')) {
+            return;
         }
+
+        const currentDay = getCurrentDay();
+        const maxDay = parseInt(journalAjax.maxDay) || 1;
+        let targetDay;
+
+        if ($(this).hasClass('prev-day')) {
+            targetDay = Math.max(1, currentDay - 1);
+        } else {
+            targetDay = Math.min(maxDay, currentDay + 1);
+        }
+
+        // Format the day number with leading zeros
+        const formattedDay = String(targetDay).padStart(3, '0');
+
+        // Navigate to the new URL
+        window.location.href = '/journal-prompts/' + formattedDay + '/';
     });
 
-    $('.next-day').on('click', function () {
-        if (!$(this).prop('disabled')) {
-            const currentDay = getCurrentDayNumber();
-            const maxDay = parseInt(journalAjax.maxDay) || 1;
-
-            console.log('Current Day:', currentDay);
-            console.log('Max Day:', maxDay);
-
-            if (currentDay < maxDay) {
-                navigateToDay(currentDay + 1);
-            }
-        }
-    });
-
-    function getCurrentDayNumber() {
-        // Get the current URL path
+    function getCurrentDay() {
         const path = window.location.pathname;
-        console.log('Current path:', path);
-
-        // Try to extract the day number
-        const segments = path.split('/').filter(Boolean);
-        const lastSegment = segments[segments.length - 1];
-        const dayNumber = parseInt(lastSegment);
-
-        console.log('Parsed day number:', dayNumber);
-        return dayNumber || 1;
-    }
-
-    function navigateToDay(day) {
-        // Get the base URL by removing the last segment
-        const pathSegments = window.location.pathname.split('/').filter(Boolean);
-        pathSegments.pop(); // Remove the last segment (current day)
-        const basePath = '/' + pathSegments.join('/');
-
-        console.log('Navigating to day:', day);
-        console.log('Base path:', basePath);
-
-        // Construct the new URL
-        window.location.href = `${basePath}/${day}/`;
+        const matches = path.match(/\/journal-prompts\/(\d+)/);
+        if (matches && matches[1]) {
+            return parseInt(matches[1].replace(/^0+/, ''));
+        }
+        return 1;
     }
 
     // Entries list toggle
@@ -96,12 +76,13 @@ jQuery(document).ready(function ($) {
                     response.data.entries.forEach(entry => {
                         const date = new Date(entry.created_at);
                         const formattedDate = date.toLocaleDateString();
+                        const formattedDay = String(entry.day_number).padStart(3, '0');
 
                         $list.append(`
                             <div class="entry-item">
                                 <span>Day ${entry.day_number} - ${formattedDate}</span>
                                 <span class="entry-status">Completed</span>
-                                <a href="?day=${entry.day_number}">View</a>
+                                <a href="/journal-prompts/${formattedDay}/">View</a>
                             </div>
                         `);
                     });
