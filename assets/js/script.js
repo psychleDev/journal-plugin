@@ -18,8 +18,11 @@ jQuery(document).ready(function ($) {
                 if (response.success) {
                     alert(response.data.message);
                 } else {
-                    alert('Failed to save entry');
+                    alert(response.data.message || 'Failed to save entry');
                 }
+            },
+            error: function () {
+                alert('Error saving entry. Please try again.');
             }
         });
     });
@@ -74,7 +77,12 @@ jQuery(document).ready(function ($) {
                         `);
                     });
                     $list.addClass('active');
+                } else {
+                    alert(response.data.message || 'Error loading entries');
                 }
+            },
+            error: function () {
+                alert('Error loading entries. Please try again.');
             }
         });
     });

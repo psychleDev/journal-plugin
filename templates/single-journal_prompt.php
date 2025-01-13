@@ -13,39 +13,29 @@ get_header();
             the_post();
             ?>
             <article id="post-<?php the_ID(); ?>" <?php post_class(); ?>>
-                <!-- <header class="entry-header">
-                     <?php //the_title('<h1 class="entry-title">', '</h1>'); ?>
-                </header> -->
-
                 <div class="entry-content">
                     <?php
-                    // the_content();
-                
                     wp_link_pages(array(
                         'before' => '<div class="page-links">' . esc_html__('Pages:', 'guided-journal'),
                         'after' => '</div>',
                     ));
                     ?>
 
-                    <?php echo do_shortcode("[journal_entry]"); ?>
-                </div>
-
-                <footer class="entry-footer">
                     <?php
-                    // Add any custom meta information here
+                    if (is_user_logged_in()) {
+                        echo do_shortcode("[journal_entry]");
+                    } else {
+                        echo '<p>' . sprintf(
+                            __('Please <a href="%s">log in</a> to view and write journal entries.', 'guided-journal'),
+                            wp_login_url(get_permalink())
+                        ) . '</p>';
+                    }
                     ?>
-                </footer>
+                </div>
             </article>
-
             <?php
-            // If comments are open or we have at least one comment, load up the comment template.
-            if (comments_open() || get_comments_number()):
-                comments_template();
-            endif;
-
-        endwhile; // End of the loop.
+        endwhile;
         ?>
-
     </main>
 </div>
 
