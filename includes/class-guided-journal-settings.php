@@ -111,6 +111,9 @@ class GuidedJournalSettings
                 --gj-container-background:
                     <?php echo esc_html($options['container_background']); ?>
                 ;
+                --gj-completed:
+                    <?php echo esc_html($options['completed']); ?>
+                ;
             }
         </style>
         <?php
