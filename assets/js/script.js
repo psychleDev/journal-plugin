@@ -20,41 +20,60 @@ jQuery(document).ready(function ($) {
                 } else {
                     alert(response.data.message || 'Failed to save entry');
                 }
-            },
-            error: function () {
-                alert('Error saving entry. Please try again.');
             }
         });
     });
 
     // Navigation handlers
-    $('.prev-day, .next-day').on('click', function () {
-        if ($(this).prop('disabled')) {
-            return;
+    $('.prev-day').on('click', function () {
+        if (!$(this).prop('disabled')) {
+            const currentDay = getCurrentDayNumber();
+            if (currentDay > 1) {
+                navigateToDay(currentDay - 1);
+            }
         }
-
-        const currentPath = window.location.pathname;
-        const matches = currentPath.match(/\/journal-prompts\/(\d+)/);
-        if (!matches) {
-            console.error('Could not determine current day number');
-            return;
-        }
-
-        const currentDay = parseInt(matches[1]);
-        const maxDay = parseInt(journalAjax.maxDay) || 1;
-        let nextDay;
-
-        if ($(this).hasClass('prev-day')) {
-            if (currentDay <= 1) return;
-            nextDay = currentDay - 1;
-        } else {
-            if (currentDay >= maxDay) return;
-            nextDay = currentDay + 1;
-        }
-
-        // Construct the new URL based on WordPress permalink structure
-        window.location.href = `/journal-prompts/${nextDay}/`;
     });
+
+    $('.next-day').on('click', function () {
+        if (!$(this).prop('disabled')) {
+            const currentDay = getCurrentDayNumber();
+            const maxDay = parseInt(journalAjax.maxDay) || 1;
+
+            console.log('Current Day:', currentDay);
+            console.log('Max Day:', maxDay);
+
+            if (currentDay < maxDay) {
+                navigateToDay(currentDay + 1);
+            }
+        }
+    });
+
+    function getCurrentDayNumber() {
+        // Get the current URL path
+        const path = window.location.pathname;
+        console.log('Current path:', path);
+
+        // Try to extract the day number
+        const segments = path.split('/').filter(Boolean);
+        const lastSegment = segments[segments.length - 1];
+        const dayNumber = parseInt(lastSegment);
+
+        console.log('Parsed day number:', dayNumber);
+        return dayNumber || 1;
+    }
+
+    function navigateToDay(day) {
+        // Get the base URL by removing the last segment
+        const pathSegments = window.location.pathname.split('/').filter(Boolean);
+        pathSegments.pop(); // Remove the last segment (current day)
+        const basePath = '/' + pathSegments.join('/');
+
+        console.log('Navigating to day:', day);
+        console.log('Base path:', basePath);
+
+        // Construct the new URL
+        window.location.href = `${basePath}/${day}/`;
+    }
 
     // Entries list toggle
     $('.list-toggle').on('click', function () {
@@ -87,12 +106,7 @@ jQuery(document).ready(function ($) {
                         `);
                     });
                     $list.addClass('active');
-                } else {
-                    alert(response.data.message || 'Error loading entries');
                 }
-            },
-            error: function () {
-                alert('Error loading entries. Please try again.');
             }
         });
     });
