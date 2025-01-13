@@ -4,16 +4,19 @@ namespace GuidedJournal;
 use \WP_Query;
 use \WP_Error;
 
-class GuidedJournal {
+class GuidedJournal
+{
     private $plugin_path;
     private $stats;
 
-    public function __construct() {
+    public function __construct()
+    {
         $this->plugin_path = GUIDED_JOURNAL_PLUGIN_DIR;
         $this->stats = new JournalStats();
     }
 
-    public function init() {
+    public function init()
+    {
         add_action('init', [$this, 'register_post_types']);
         add_filter('template_include', [$this, 'load_journal_templates'], 99);
         add_shortcode('journal_grid', [$this, 'render_grid']);
@@ -27,7 +30,7 @@ class GuidedJournal {
         add_filter('the_content', [$this, 'add_stats_to_entry_page']);
 
         // Basic access control - must be logged in
-        add_action('template_redirect', function() {
+        add_action('template_redirect', function () {
             if (
                 strpos($_SERVER['REQUEST_URI'], '/grid') !== false ||
                 strpos($_SERVER['REQUEST_URI'], '/entry') !== false ||
@@ -41,7 +44,8 @@ class GuidedJournal {
         });
     }
 
-    public function register_post_types() {
+    public function register_post_types()
+    {
         $args = [
             'labels' => [
                 'name' => __('Journal Prompts', 'guided-journal'),
@@ -83,16 +87,17 @@ class GuidedJournal {
         register_post_type('journal_prompt', $args);
     }
 
-    public function load_journal_templates($template) {
+    public function load_journal_templates($template)
+    {
         if (is_singular('journal_prompt')) {
             $theme_template = locate_template('single-journal_prompt.php');
-            
+
             if ($theme_template) {
                 return $theme_template;
             }
-            
+
             $plugin_template = $this->plugin_path . 'templates/single-journal_prompt.php';
-            
+
             if (file_exists($plugin_template)) {
                 return $plugin_template;
             }
@@ -100,7 +105,8 @@ class GuidedJournal {
         return $template;
     }
 
-    public function enqueue_assets() {
+    public function enqueue_assets()
+    {
         // Only enqueue editor assets on journal entry pages
         if (is_singular('journal_prompt') || strpos($_SERVER['REQUEST_URI'], '/entry') !== false) {
             wp_enqueue_editor();
@@ -132,7 +138,8 @@ class GuidedJournal {
         ]);
     }
 
-    public function render_grid($atts) {
+    public function render_grid($atts)
+    {
         if (!is_user_logged_in()) {
             return sprintf(
                 '<p>%s</p>',
@@ -140,55 +147,104 @@ class GuidedJournal {
                 wp_login_url(get_permalink())
             );
         }
-    
+
+        // Get stats for current user
+        $user_stats = $this->stats->get_user_stats(get_current_user_id());
+
         // Get completed entries for current user
         global $wpdb;
         $completed_entries = $wpdb->get_col($wpdb->prepare(
             "SELECT day_number FROM {$wpdb->prefix}journal_entries WHERE user_id = %d",
             get_current_user_id()
         ));
-    
+
         ob_start();
         ?>
         <div class="container">
             <h1><?php _e('Guided Journal', 'guided-journal'); ?></h1>
-            
-            <?php echo $this->get_stats_html(); ?>
-            
-            <div class="prompt-grid">
-                <?php
-                $the_query = new WP_Query([
-                    'post_type' => 'journal_prompt',
-                    'nopaging' => true,
-                    'orderby' => 'title_num',
-                    'meta_key' => 'title_num',
-                    'orderby' => 'meta_value_num',
-                    'order' => 'ASC',
-                    'posts_per_page' => -1
-                ]);
-    
-                if ($the_query->have_posts()):
-                    while ($the_query->have_posts()):
-                        $the_query->the_post();
-                        $number = intval(get_the_title());
-                        $formatted_number = sprintf('%02d', $number);
-                        $completed_class = in_array($number, $completed_entries) ? 'completed' : '';
-                        ?>
-                        <a href="<?php the_permalink(); ?>" class="prompt-card <?php echo esc_attr($completed_class); ?>" data-day="<?php echo esc_attr($number); ?>">
-                            <span class="day-number"><?php echo esc_html($formatted_number); ?></span>
-                        </a>
-                    <?php
-                    endwhile;
-                    wp_reset_postdata();
-                endif;
-                ?>
+
+            <!-- Stats Dashboard -->
+            <div class="journal-dashboard">
+                <div class="stats-overview">
+                    <div class="stat-card">
+                        <span class="stat-icon">📝</span>
+                        <div class="stat-content">
+                            <span class="stat-value"><?php echo count($completed_entries); ?></span>
+                                    <span class=" stat-label"><?php _e('Entries Written', 'guided-journal'); ?></span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-icon">🔥</span>
+                        <div class="stat-content">
+                            <span class="stat-value"><?php echo $user_stats['streak']; ?></span>
+                                    <span class=" stat-label"><?php _e('Day Streak', 'guided-journal'); ?></span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-icon">📊</span>
+                        <div class="stat-content">
+                            <span class="stat-value"><?php echo number_format($user_stats['total_words']); ?></span>
+                                    <span class=" stat-label"><?php _e('Total Words', 'guided-journal'); ?></span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-icon">⏱️</span>
+                        <div class="stat-content">
+                            <span class="stat-value"><?php echo $this->format_time_spent($user_stats['total_time']); ?></span>
+                                    <span class=" stat-label"><?php _e('Time Writing', 'guided-journal'); ?></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Progress bar -->
+                <div class="progress-section">
+                    <div class="progress-label">
+                        <span><?php _e('Journal Progress', 'guided-journal'); ?></span>
+                            <span class="progress-percentage"><?php echo round((count($completed_entries) / wp_count_posts('journal_prompt')->publish) * 100); ?>%</span>
+                            </div>
+                            <div class=" progress-bar">
+                                <div class="progress-fill"
+                                    style="width: <?php echo (count($completed_entries) / wp_count_posts('journal_prompt')->publish) * 100; ?>%">
+                                </div>
+                    </div>
+                </div>
             </div>
-        </div>
-        <?php
-        return ob_get_clean();
+
+            <div class="prompt-grid">
+                    <?php
+                    $the_query = new WP_Query([
+                        'post_type' => 'journal_prompt',
+                        'nopaging' => true,
+                        'orderby' => 'title_num',
+                        'meta_key' => 'title_num',
+                        'orderby' => 'meta_value_num',
+                        'order' => 'ASC',
+                        'posts_per_page' => -1
+                    ]);
+
+                    if ($the_query->have_posts()):
+                        while ($the_query->have_posts()):
+                            $the_query->the_post();
+                            $number = intval(get_the_title());
+                            $formatted_number = sprintf('%02d', $number);
+                            $completed_class = in_array($number, $completed_entries) ? 'completed' : '';
+                            ?>
+                        <a href="<?php the_permalink(); ?>" class="prompt-card <?php echo esc_attr($completed_class); ?>">
+                            <span class="day-number"><?php echo esc_html($formatted_number); ?></span>
+                                        </a>
+                                    <?php
+                        endwhile;
+                        wp_reset_postdata();
+                    endif;
+                    ?>
+                    </div>
+                </div>
+                <?php
+                return ob_get_clean();
     }
 
-    public function render_entry_page($atts) {
+    public function render_entry_page($atts)
+    {
         if (!is_user_logged_in()) {
             return sprintf(
                 '<p>%s</p>',
@@ -205,67 +261,70 @@ class GuidedJournal {
         $prompt = $this->get_prompt($day);
         $entry = $this->get_entry(get_current_user_id(), $day);
         ?>
-        <div class="container">
-            <div class="navigation-top">
-                <a href="/grid" class="contents-toggle">
-                    <?php _e('Back to Grid', 'guided-journal'); ?>
-                </a>
+                <div class=" container">
+                        <div class="navigation-top">
+                            <a href="/grid" class="contents-toggle">
+                                <?php _e('Back to Grid', 'guided-journal'); ?>
+                            </a>
+                        </div>
+
+                        <div class="journal-container">
+                            <h2><?php printf(__('Day %d', 'guided-journal'), $day); ?></h2>
+
+                            <div class="prompt"><?php echo wp_kses_post($prompt); ?></div>
+
+                            <div class="journal-stats"></div>
+
+                            <?php
+                            // Initialize WordPress editor
+                            $editor_settings = array(
+                                'textarea_name' => 'journal-entry',
+                                'textarea_rows' => 10,
+                                'media_buttons' => true,
+                                'tinymce' => array(
+                                    'toolbar1' => 'formatselect,bold,italic,underline,bullist,numlist,link,unlink,undo,redo',
+                                    'toolbar2' => '',
+                                    'plugins' => 'link,lists,paste',
+                                ),
+                                'quicktags' => true,
+                            );
+                            wp_editor($entry, 'journal-entry', $editor_settings);
+                            ?>
+
+                            <div class="save-status">All changes saved</div>
+
+                            <div class="navigation">
+                                <button class="prev-day" <?php echo ($day <= 1) ? 'disabled' : ''; ?>>
+                                    <?php _e('Previous Day', 'guided-journal'); ?>
+                                </button>
+                                <button class="save-entry">
+                                    <?php _e('Save Entry', 'guided-journal'); ?>
+                                </button>
+                                <button class="next-day" <?php echo ($day >= wp_count_posts('journal_prompt')->publish) ? 'disabled' : ''; ?>>
+                                    <?php _e('Next Day', 'guided-journal'); ?>
+                                </button>
+                            </div>
+                        </div>
             </div>
-
-            <div class="journal-container">
-                <h2><?php printf(__('Day %d', 'guided-journal'), $day); ?></h2>
-
-                <div class="prompt"><?php echo wp_kses_post($prompt); ?></div>
-
-                <div class="journal-stats"></div>
-
-                <?php
-                // Initialize WordPress editor
-                $editor_settings = array(
-                    'textarea_name' => 'journal-entry',
-                    'textarea_rows' => 10,
-                    'media_buttons' => true,
-                    'tinymce'       => array(
-                        'toolbar1'  => 'formatselect,bold,italic,underline,bullist,numlist,link,unlink,undo,redo',
-                        'toolbar2'  => '',
-                        'plugins'   => 'link,lists,paste',
-                    ),
-                    'quicktags'     => true,
-                );
-                wp_editor($entry, 'journal-entry', $editor_settings);
-                ?>
-
-                <div class="save-status">All changes saved</div>
-
-                <div class="navigation">
-                    <button class="prev-day" <?php echo ($day <= 1) ? 'disabled' : ''; ?>>
-                        <?php _e('Previous Day', 'guided-journal'); ?>
-                    </button>
-                    <button class="save-entry">
-                        <?php _e('Save Entry', 'guided-journal'); ?>
-                    </button>
-                    <button class="next-day" <?php echo ($day >= wp_count_posts('journal_prompt')->publish) ? 'disabled' : ''; ?>>
-                        <?php _e('Next Day', 'guided-journal'); ?>
-                    </button>
-                </div>
-            </div>
-        </div>
-        <?php
-        return ob_get_clean();
+            <?php
+            return ob_get_clean();
     }
 
-    public function render_notification_container() {
+    public function render_notification_container()
+    {
         if (is_singular('journal_prompt') || strpos($_SERVER['REQUEST_URI'], '/entry') !== false) {
             echo '<div id="journal-notification" class="journal-notification"></div>';
         }
     }
 
-    private function get_prompt($day) {
+    private function get_prompt($day)
+    {
         $prompt = get_page_by_path($day, OBJECT, 'journal_prompt');
         return $prompt ? apply_filters('the_content', $prompt->post_content) : sprintf(__('Prompt for day %d', 'guided-journal'), $day);
     }
 
-    private function get_entry($user_id, $day) {
+    private function get_entry($user_id, $day)
+    {
         global $wpdb;
         return $wpdb->get_var($wpdb->prepare(
             "SELECT entry_text FROM {$wpdb->prefix}journal_entries 
@@ -275,7 +334,8 @@ class GuidedJournal {
         ));
     }
 
-    public function save_entry() {
+    public function save_entry()
+    {
         check_ajax_referer('journal_nonce', 'nonce');
 
         if (!is_user_logged_in()) {
@@ -336,7 +396,8 @@ class GuidedJournal {
         ]);
     }
 
-    public function get_entries() {
+    public function get_entries()
+    {
         check_ajax_referer('journal_nonce', 'nonce');
 
         if (!is_user_logged_in()) {
@@ -353,7 +414,8 @@ class GuidedJournal {
         wp_send_json_success(['entries' => $entries]);
     }
 
-    public function add_stats_to_entry_page($content) {
+    public function add_stats_to_entry_page($content)
+    {
         if (!is_singular('journal_prompt') || !is_user_logged_in()) {
             return $content;
         }
@@ -362,44 +424,46 @@ class GuidedJournal {
         return $content . $stats_html;
     }
 
-    private function get_stats_html() {
+    private function get_stats_html()
+    {
         $user_stats = $this->stats->get_user_stats(get_current_user_id());
-        
+
         ob_start();
         ?>
-        <div class="journal-stats-summary">
-            <h3><?php _e('Your Writing Stats', 'guided-journal'); ?></h3>
-            <div class="stats-grid">
-                <div class="stat-item">
-                    <span class="stat-label"><?php _e('Total Words Written', 'guided-journal'); ?></span>
-                    <span class="stat-value"><?php echo number_format($user_stats['total_words']); ?></span>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-label"><?php _e('Writing Streak', 'guided-journal'); ?></span>
-                    <span class="stat-value"><?php echo $user_stats['streak']; ?> days</span>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-label"><?php _e('Average Words per Entry', 'guided-journal'); ?></span>
-                    <span class="stat-value"><?php echo $user_stats['avg_words']; ?></span>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-label"><?php _e('Total Time Writing', 'guided-journal'); ?></span>
-                    <span class="stat-value"><?php echo $this->format_time_spent($user_stats['total_time']); ?></span>
+            <div class="journal-stats-summary">
+                <h3><?php _e('Your Writing Stats', 'guided-journal'); ?></h3>
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <span class="stat-label"><?php _e('Total Words Written', 'guided-journal'); ?></span>
+                        <span class="stat-value"><?php echo number_format($user_stats['total_words']); ?></span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label"><?php _e('Writing Streak', 'guided-journal'); ?></span>
+                        <span class="stat-value"><?php echo $user_stats['streak']; ?> days</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label"><?php _e('Average Words per Entry', 'guided-journal'); ?></span>
+                        <span class="stat-value"><?php echo $user_stats['avg_words']; ?></span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label"><?php _e('Total Time Writing', 'guided-journal'); ?></span>
+                        <span class="stat-value"><?php echo $this->format_time_spent($user_stats['total_time']); ?></span>
+                    </div>
                 </div>
             </div>
-        </div>
-        <?php
-        return ob_get_clean();
+            <?php
+            return ob_get_clean();
     }
 
-    private function format_time_spent($seconds) {
+    private function format_time_spent($seconds)
+    {
         if ($seconds < 60) {
             return __('Less than a minute', 'guided-journal');
         }
 
         $hours = floor($seconds / 3600);
         $minutes = floor(($seconds % 3600) / 60);
-        
+
         if ($hours > 0) {
             return sprintf(
                 _n('%d hour', '%d hours', $hours, 'guided-journal'),
@@ -409,11 +473,12 @@ class GuidedJournal {
                 $minutes
             );
         }
-        
+
         return sprintf(_n('%d minute', '%d minutes', $minutes, 'guided-journal'), $minutes);
     }
 
-    private function get_completion_percentage() {
+    private function get_completion_percentage()
+    {
         $total_prompts = wp_count_posts('journal_prompt')->publish;
         if ($total_prompts === 0) {
             return 0;
@@ -430,7 +495,8 @@ class GuidedJournal {
         return round(($completed_entries / $total_prompts) * 100);
     }
 
-    public function get_journal_stats() {
+    public function get_journal_stats()
+    {
         check_ajax_referer('journal_nonce', 'nonce');
 
         if (!is_user_logged_in()) {
@@ -444,29 +510,31 @@ class GuidedJournal {
         wp_send_json_success($stats);
     }
 
-    private function validate_entry_data($data) {
+    private function validate_entry_data($data)
+    {
         $errors = [];
-        
+
         if (empty($data['day']) || !is_numeric($data['day'])) {
             $errors[] = __('Invalid day number', 'guided-journal');
         }
-        
+
         if (empty($data['text'])) {
             $errors[] = __('Entry text cannot be empty', 'guided-journal');
         }
-        
+
         if (!isset($data['word_count']) || !is_numeric($data['word_count'])) {
             $errors[] = __('Invalid word count', 'guided-journal');
         }
-        
+
         if (!isset($data['time_spent']) || !is_numeric($data['time_spent'])) {
             $errors[] = __('Invalid time spent', 'guided-journal');
         }
-        
+
         return empty($errors) ? true : $errors;
     }
 
-    private function sanitize_entry_data($data) {
+    private function sanitize_entry_data($data)
+    {
         return [
             'day' => intval($data['day']),
             'text' => wp_kses_post($data['text']),
@@ -475,7 +543,8 @@ class GuidedJournal {
         ];
     }
 
-    public function get_user_journal_data() {
+    public function get_user_journal_data()
+    {
         if (!is_user_logged_in()) {
             return false;
         }
@@ -498,7 +567,7 @@ class GuidedJournal {
         }
 
         $stats = $this->stats->get_user_stats($user_id);
-        
+
         return [
             'entries' => $entries,
             'stats' => $stats,
