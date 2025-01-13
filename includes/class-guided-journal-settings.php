@@ -10,7 +10,7 @@ class GuidedJournalSettings
         'text' => '#ffffff',
         'accent' => '#991B1E',
         'container_background' => '#494949',
-        'completed' => '#2E7D32'  // Add this new default color
+        'completed' => '#2E7D32'
     ];
 
     public function __construct()
@@ -19,11 +19,14 @@ class GuidedJournalSettings
         add_action('admin_init', [$this, 'register_settings']);
         add_action('wp_head', [$this, 'output_custom_colors']);
         add_action('admin_enqueue_scripts', [$this, 'enqueue_admin_assets']);
+        add_action('admin_post_reset_journal_prompts', [$this, 'reset_journal_prompts']);
+        add_action('admin_post_reset_journal_entries', [$this, 'reset_journal_entries']);
+        add_action('admin_notices', [$this, 'display_reset_notices']);
     }
 
     public function enqueue_admin_assets($hook)
     {
-        if ($hook !== 'journal-settings') {
+        if ('toplevel_page_journal-settings' !== $hook) {
             return;
         }
 
@@ -80,7 +83,7 @@ class GuidedJournalSettings
         $sanitized = [];
         foreach ($this->default_colors as $key => $default) {
             if (isset($input[$key])) {
-                // Strip any non-hex characters
+                // Strip any non-hex characters and ensure it starts with #
                 $color = preg_replace('/[^A-Fa-f0-9]/', '', $input[$key]);
                 $sanitized[$key] = '#' . $color;
             } else {
@@ -119,7 +122,32 @@ class GuidedJournalSettings
         <?php
     }
 
-    // In class-guided-journal-settings.php, update the render_settings_page method:
+    public function display_reset_notices()
+    {
+        if (!isset($_GET['page']) || $_GET['page'] !== 'journal-settings') {
+            return;
+        }
+
+        if (isset($_GET['reset'])) {
+            $type = sanitize_text_field($_GET['reset']);
+            $message = '';
+            $class = 'notice notice-success';
+
+            switch ($type) {
+                case 'prompts':
+                    $message = 'All journal prompts have been successfully deleted.';
+                    break;
+                case 'entries':
+                    $message = 'All journal entries have been successfully cleared.';
+                    break;
+            }
+
+            if ($message) {
+                printf('<div class="%1$s"><p>%2$s</p></div>', esc_attr($class), esc_html($message));
+            }
+        }
+    }
+
     public function render_settings_page()
     {
         if (!current_user_can('manage_options')) {
@@ -129,6 +157,7 @@ class GuidedJournalSettings
         <div class="wrap">
             <h1><?php echo esc_html(get_admin_page_title()); ?></h1>
 
+            <!-- Color Settings Section -->
             <div class="color-settings-preview">
                 <h3>Color Settings</h3>
                 <p>Customize the appearance of your journal by adjusting the colors below. Changes will be reflected immediately
@@ -136,9 +165,7 @@ class GuidedJournalSettings
             </div>
 
             <form action="options.php" method="post">
-                <?php
-                settings_fields('guided_journal_colors');
-                ?>
+                <?php settings_fields('guided_journal_colors'); ?>
 
                 <div class="color-settings-grid">
                     <?php
@@ -178,7 +205,72 @@ class GuidedJournalSettings
 
                 <?php submit_button('Save Color Settings'); ?>
             </form>
+
+            <!-- Reset Options Section -->
+            <div class="color-settings-preview" style="margin-top: 40px;">
+                <h3>Reset Options</h3>
+                <p>Use these options with caution. These actions cannot be undone.</p>
+            </div>
+
+            <div class="reset-options">
+                <form action="<?php echo admin_url('admin-post.php'); ?>" method="post"
+                    style="display: inline-block; margin-right: 20px;">
+                    <?php wp_nonce_field('reset_journal_prompts_nonce', 'reset_prompts_nonce'); ?>
+                    <input type="hidden" name="action" value="reset_journal_prompts">
+                    <input type="submit" class="button button-secondary" value="Reset All Prompts"
+                        onclick="return confirm('Are you sure you want to delete all journal prompts? This action cannot be undone.');">
+                </form>
+
+                <form action="<?php echo admin_url('admin-post.php'); ?>" method="post" style="display: inline-block;">
+                    <?php wp_nonce_field('reset_journal_entries_nonce', 'reset_entries_nonce'); ?>
+                    <input type="hidden" name="action" value="reset_journal_entries">
+                    <input type="submit" class="button button-secondary" value="Reset All Journal Entries"
+                        onclick="return confirm('Are you sure you want to delete all journal entries? This action cannot be undone.');">
+                </form>
+            </div>
         </div>
         <?php
+    }
+
+    public function reset_journal_prompts()
+    {
+        if (!current_user_can('manage_options') || !check_admin_referer('reset_journal_prompts_nonce', 'reset_prompts_nonce')) {
+            wp_die('Unauthorized access');
+        }
+
+        $args = array(
+            'post_type' => 'journal_prompt',
+            'posts_per_page' => -1,
+            'post_status' => 'any',
+        );
+
+        $prompts = get_posts($args);
+
+        foreach ($prompts as $prompt) {
+            wp_delete_post($prompt->ID, true);
+        }
+
+        wp_redirect(add_query_arg(
+            array('page' => 'journal-settings', 'reset' => 'prompts'),
+            admin_url('admin.php')
+        ));
+        exit;
+    }
+
+    public function reset_journal_entries()
+    {
+        if (!current_user_can('manage_options') || !check_admin_referer('reset_journal_entries_nonce', 'reset_entries_nonce')) {
+            wp_die('Unauthorized access');
+        }
+
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'journal_entries';
+        $wpdb->query("TRUNCATE TABLE $table_name");
+
+        wp_redirect(add_query_arg(
+            array('page' => 'journal-settings', 'reset' => 'entries'),
+            admin_url('admin.php')
+        ));
+        exit;
     }
 }
