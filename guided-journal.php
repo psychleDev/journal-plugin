@@ -1,8 +1,8 @@
 <?php
 /**
  * Plugin Name: Guided Journal
- * Description: A customizable guided journal system for WordPress
- * Version: 1.0
+ * Description: A customizable guided journal system for WordPress with writing stats and progress tracking
+ * Version: 2.0
  * Author: Your Name
  * Text Domain: guided-journal
  */
@@ -11,18 +11,23 @@
 defined('ABSPATH') || exit;
 
 // Define plugin constants
-define('GUIDED_JOURNAL_VERSION', '1.0.0');
+define('GUIDED_JOURNAL_VERSION', '2.0.0');
 define('GUIDED_JOURNAL_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('GUIDED_JOURNAL_PLUGIN_URL', plugin_dir_url(__FILE__));
+define('GUIDED_JOURNAL_DB_VERSION', '2.0');
 
 // Include required files
 require_once GUIDED_JOURNAL_PLUGIN_DIR . 'includes/class-guided-journal.php';
 require_once GUIDED_JOURNAL_PLUGIN_DIR . 'includes/class-journal-roles.php';
 require_once GUIDED_JOURNAL_PLUGIN_DIR . 'includes/class-guided-journal-settings.php';
+require_once GUIDED_JOURNAL_PLUGIN_DIR . 'includes/class-journal-stats.php';
 
-// Initialize plugin
+/**
+ * Initialize plugin
+ */
 function guided_journal_init()
 {
+    // Initialize main plugin class
     $plugin = new GuidedJournal\GuidedJournal();
     $plugin->register_post_types();
     $plugin->init();
@@ -40,10 +45,15 @@ function guided_journal_init()
 // Start the plugin on init
 add_action('init', 'guided_journal_init', 0);
 
-// Activation hook
+/**
+ * Plugin activation
+ */
 register_activation_hook(__FILE__, 'guided_journal_activate');
 function guided_journal_activate()
 {
+    // Create database tables
+    guided_journal_create_tables();
+
     // Create an instance and register post types
     $plugin = new GuidedJournal\GuidedJournal();
     $plugin->register_post_types();
@@ -52,12 +62,26 @@ function guided_journal_activate()
     $roles = new GuidedJournal\JournalRoles();
     $roles->create_journal_roles();
 
+    // Set default options
+    guided_journal_set_default_options();
+
+    // Add plugin version to options
+    add_option('guided_journal_version', GUIDED_JOURNAL_VERSION);
+    add_option('guided_journal_db_version', GUIDED_JOURNAL_DB_VERSION);
+
     // Flush rewrite rules
     flush_rewrite_rules();
+}
 
-    // Create journal entries table
+/**
+ * Create required database tables
+ */
+function guided_journal_create_tables()
+{
     global $wpdb;
     $charset_collate = $wpdb->get_charset_collate();
+
+    // Journal entries table
     $sql = "CREATE TABLE IF NOT EXISTS {$wpdb->prefix}journal_entries (
         id bigint(20) NOT NULL AUTO_INCREMENT,
         user_id bigint(20) NOT NULL,
@@ -69,26 +93,175 @@ function guided_journal_activate()
         KEY user_day (user_id, day_number)
     ) $charset_collate;";
 
+    // Journal stats table
+    $sql .= "CREATE TABLE IF NOT EXISTS {$wpdb->prefix}journal_stats (
+        id bigint(20) NOT NULL AUTO_INCREMENT,
+        user_id bigint(20) NOT NULL,
+        day_number int(11) NOT NULL,
+        word_count int(11) NOT NULL DEFAULT 0,
+        time_spent int(11) NOT NULL DEFAULT 0,
+        last_modified datetime DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY  (id),
+        UNIQUE KEY user_day (user_id, day_number)
+    ) $charset_collate;";
+
+    // Writing streaks table
+    $sql .= "CREATE TABLE IF NOT EXISTS {$wpdb->prefix}journal_streaks (
+        id bigint(20) NOT NULL AUTO_INCREMENT,
+        user_id bigint(20) NOT NULL,
+        streak_start date NOT NULL,
+        streak_end date NOT NULL,
+        streak_days int(11) NOT NULL DEFAULT 1,
+        PRIMARY KEY  (id),
+        KEY user_id (user_id)
+    ) $charset_collate;";
+
     require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
     dbDelta($sql);
 }
 
-// Deactivation hook
+/**
+ * Set default plugin options
+ */
+function guided_journal_set_default_options()
+{
+    $default_colors = [
+        'background' => '#333333',
+        'card_background' => '#1b1b1b',
+        'text' => '#ffffff',
+        'accent' => '#991B1E',
+        'container_background' => '#494949',
+        'completed' => '#2E7D32'
+    ];
+
+    add_option('guided_journal_colors', $default_colors);
+    add_option('guided_journal_autosave_interval', 120); // 2 minutes in seconds
+    add_option('guided_journal_min_words', 0); // Minimum words per entry (0 = no minimum)
+    add_option('guided_journal_show_stats', 1); // Show stats by default
+}
+
+/**
+ * Plugin deactivation
+ */
 register_deactivation_hook(__FILE__, 'guided_journal_deactivate');
 function guided_journal_deactivate()
 {
+    // Clear any scheduled events
+    wp_clear_scheduled_hook('guided_journal_daily_maintenance');
+
+    // Flush rewrite rules
     flush_rewrite_rules();
 }
 
+/**
+ * Plugin uninstall
+ */
+register_uninstall_hook(__FILE__, 'guided_journal_uninstall');
+function guided_journal_uninstall()
+{
+    // Only run if explicitly enabled in settings
+    if (get_option('guided_journal_delete_data_on_uninstall', false)) {
+        global $wpdb;
+
+        // Remove database tables
+        $wpdb->query("DROP TABLE IF EXISTS {$wpdb->prefix}journal_entries");
+        $wpdb->query("DROP TABLE IF EXISTS {$wpdb->prefix}journal_stats");
+        $wpdb->query("DROP TABLE IF EXISTS {$wpdb->prefix}journal_streaks");
+
+        // Remove all plugin options
+        delete_option('guided_journal_version');
+        delete_option('guided_journal_db_version');
+        delete_option('guided_journal_colors');
+        delete_option('guided_journal_autosave_interval');
+        delete_option('guided_journal_min_words');
+        delete_option('guided_journal_show_stats');
+        delete_option('guided_journal_delete_data_on_uninstall');
+
+        // Remove all journal prompts
+        $posts = get_posts([
+            'post_type' => 'journal_prompt',
+            'numberposts' => -1,
+            'post_status' => 'any'
+        ]);
+
+        foreach ($posts as $post) {
+            wp_delete_post($post->ID, true);
+        }
+    }
+}
+
+/**
+ * Enqueue styles with custom colors
+ */
 function enqueue_journal_styles()
 {
-    $completedColor = get_option('gj_completed_color', '#00FF00');
+    $options = get_option('guided_journal_colors', []);
 
-    echo "<style>
-        :root {
-            --gj-completed-background: {$completedColor};
-            --gj-completed-border: {$completedColor};
-        }
-    </style>";
+    if (!empty($options)) {
+        echo "<style>
+            :root {
+                --gj-background: " . esc_html($options['background']) . ";
+                --gj-card-background: " . esc_html($options['card_background']) . ";
+                --gj-text: " . esc_html($options['text']) . ";
+                --gj-accent: " . esc_html($options['accent']) . ";
+                --gj-container-background: " . esc_html($options['container_background']) . ";
+                --gj-completed: " . esc_html($options['completed']) . ";
+            }
+        </style>";
+    }
 }
 add_action('wp_head', 'enqueue_journal_styles');
+
+/**
+ * Daily maintenance tasks
+ */
+function guided_journal_daily_maintenance()
+{
+    // Update streaks
+    global $wpdb;
+
+    // Get all users with journal entries
+    $users = $wpdb->get_col("
+        SELECT DISTINCT user_id 
+        FROM {$wpdb->prefix}journal_entries
+    ");
+
+    foreach ($users as $user_id) {
+        // Get the user's stats instance
+        $stats = new GuidedJournal\JournalStats();
+
+        // Recalculate and update streak
+        $stats->update_user_streak($user_id);
+    }
+}
+add_action('guided_journal_daily_maintenance', 'guided_journal_daily_maintenance');
+
+// Schedule daily maintenance if not already scheduled
+if (!wp_next_scheduled('guided_journal_daily_maintenance')) {
+    wp_schedule_event(time(), 'daily', 'guided_journal_daily_maintenance');
+}
+
+/**
+ * Handle plugin updates
+ */
+function guided_journal_check_version()
+{
+    if (get_option('guided_journal_version') !== GUIDED_JOURNAL_VERSION) {
+        guided_journal_update();
+    }
+}
+add_action('plugins_loaded', 'guided_journal_check_version');
+
+function guided_journal_update()
+{
+    $installed_version = get_option('guided_journal_version');
+
+    // Perform any version-specific updates here
+    if (version_compare($installed_version, '2.0.0', '<')) {
+        // Update to version 2.0.0
+        guided_journal_create_tables();
+    }
+
+    // Update version in database
+    update_option('guided_journal_version', GUIDED_JOURNAL_VERSION);
+}
