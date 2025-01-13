@@ -79,3 +79,16 @@ function guided_journal_deactivate()
 {
     flush_rewrite_rules();
 }
+
+function enqueue_journal_styles()
+{
+    $completedColor = get_option('gj_completed_color', '#00FF00');
+
+    echo "<style>
+        :root {
+            --gj-completed-background: {$completedColor};
+            --gj-completed-border: {$completedColor};
+        }
+    </style>";
+}
+add_action('wp_head', 'enqueue_journal_styles');
