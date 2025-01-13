@@ -22,7 +22,7 @@ class GuidedJournalSettings
 
     public function enqueue_admin_assets($hook)
     {
-        if ($hook !== 'toplevel_page_journal-settings') {
+        if ($hook !== 'journal-settings') {
             return;
         }
 
@@ -72,20 +72,6 @@ class GuidedJournalSettings
             'default' => $this->default_colors,
             'sanitize_callback' => [$this, 'sanitize_colors']
         ]);
-
-        // Add completed entry color setting
-        register_setting('guided_journal_settings', 'gj_completed_color');
-
-        add_settings_field(
-            'gj_completed_color',
-            'Completed Entry Color',
-            function () {
-                $color = get_option('gj_completed_color', '#00FF00'); // Default green
-                echo "<input type='color' name='gj_completed_color' value='{$color}'>";
-            },
-            'guided_journal_settings',
-            'guided_journal_settings_section'
-        );
     }
 
     public function sanitize_colors($input)
@@ -106,7 +92,6 @@ class GuidedJournalSettings
     public function output_custom_colors()
     {
         $options = get_option('guided_journal_colors', $this->default_colors);
-        $completedColor = get_option('gj_completed_color', '#00FF00');
         ?>
         <style>
             :root {
@@ -124,9 +109,6 @@ class GuidedJournalSettings
                 ;
                 --gj-container-background:
                     <?php echo esc_html($options['container_background']); ?>
-                ;
-                --gj-completed-color:
-                    <?php echo esc_html($completedColor); ?>
                 ;
             }
         </style>
@@ -151,7 +133,6 @@ class GuidedJournalSettings
             <form action="options.php" method="post">
                 <?php
                 settings_fields('guided_journal_colors');
-                do_settings_sections('guided_journal_settings');
                 ?>
 
                 <div class="color-settings-grid">
@@ -170,7 +151,7 @@ class GuidedJournalSettings
                         ?>
                         <div class="color-field">
                             <h4><?php echo esc_html($labels[0]); ?></h4>
-                            <p class="description"> <?php echo esc_html($labels[1]); ?></p>
+                            <p class="description"><?php echo esc_html($labels[1]); ?></p>
                             <div class="color-inputs">
                                 <input type="color" id="guided_journal_color_<?php echo esc_attr($key); ?>"
                                     name="guided_journal_colors[<?php echo esc_attr($key); ?>]"
@@ -187,16 +168,6 @@ class GuidedJournalSettings
                         <?php
                     }
                     ?>
-                    <div class="color-field">
-                        <h4>Completed Entry Color</h4>
-                        <p class="description">Set the color for completed journal entries.</p>
-                        <div class="color-inputs">
-                            <input type="color" id="gj_completed_color" name="gj_completed_color"
-                                value="<?php echo esc_attr(get_option('gj_completed_color', '#00FF00')); ?>">
-                            <button type="button" class="button button-secondary reset-color" data-default="#00FF00"
-                                data-target="gj_completed_color">Reset</button>
-                        </div>
-                    </div>
                 </div>
 
                 <?php submit_button('Save Color Settings'); ?>
