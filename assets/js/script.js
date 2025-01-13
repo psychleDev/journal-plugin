@@ -28,26 +28,32 @@ jQuery(document).ready(function ($) {
     });
 
     // Navigation handlers
-    $('.prev-day').on('click', function () {
-        if (!$(this).prop('disabled')) {
-            const currentPath = window.location.pathname;
-            const day = parseInt(currentPath.split('/').filter(Boolean).pop()) || 1;
-            if (day > 1) {
-                window.location.href = `../${day - 1}`;
-            }
+    $('.prev-day, .next-day').on('click', function () {
+        if ($(this).prop('disabled')) {
+            return;
         }
-    });
 
-    $('.next-day').on('click', function () {
-        if (!$(this).prop('disabled')) {
-            const currentPath = window.location.pathname;
-            const day = parseInt(currentPath.split('/').filter(Boolean).pop()) || 1;
-            const maxDay = parseInt(journalAjax.maxDay) || 1;
-
-            if (day < maxDay) {
-                window.location.href = `../${day + 1}`;
-            }
+        const currentPath = window.location.pathname;
+        const matches = currentPath.match(/\/journal-prompts\/(\d+)/);
+        if (!matches) {
+            console.error('Could not determine current day number');
+            return;
         }
+
+        const currentDay = parseInt(matches[1]);
+        const maxDay = parseInt(journalAjax.maxDay) || 1;
+        let nextDay;
+
+        if ($(this).hasClass('prev-day')) {
+            if (currentDay <= 1) return;
+            nextDay = currentDay - 1;
+        } else {
+            if (currentDay >= maxDay) return;
+            nextDay = currentDay + 1;
+        }
+
+        // Construct the new URL based on WordPress permalink structure
+        window.location.href = `/journal-prompts/${nextDay}/`;
     });
 
     // Entries list toggle
