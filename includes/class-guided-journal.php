@@ -244,8 +244,7 @@ class GuidedJournal
         return ob_get_clean();
     }
 
-    public function render_entry_page($atts)
-    {
+    public function render_entry_page($atts) {
         if (!is_user_logged_in()) {
             return sprintf(
                 '<p>%s</p>',
@@ -253,58 +252,58 @@ class GuidedJournal
                 wp_login_url(get_permalink())
             );
         }
-
+    
         ob_start();
         $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
         $slug = basename($path);
         $day = str_replace('day-', '', $slug);
-
+    
         $prompt = $this->get_prompt($day);
         $entry = $this->get_entry(get_current_user_id(), $day);
         ?>
         <div class="container">
             <div class="navigation-top">
                 <a href="/grid" class="contents-toggle">
-                        <?php _e('Back to Grid', 'guided-journal'); ?>
+                    <?php _e('Back to Grid', 'guided-journal'); ?>
                 </a>
             </div>
-
+    
             <div class="journal-container">
                 <h2><?php printf(__('Day %d', 'guided-journal'), $day); ?></h2>
-
+    
                 <div class="prompt"><?php echo wp_kses_post($prompt); ?></div>
     
-                        <?php
-                        $editor_settings = array(
-                            'textarea_name' => 'journal-entry',
-                            'textarea_rows' => 20,
-                            'editor_height' => 400,
-                            'media_buttons' => true,
-                            'tinymce' => array(
-                                'toolbar1' => 'formatselect,bold,italic,underline,bullist,numlist,link,unlink,undo,redo',
-                                'toolbar2' => '',
-                                'plugins' => 'link,lists,paste',
-                            ),
-                            'quicktags' => true,
-                        );
-                        wp_editor($entry, 'journal-entry', $editor_settings);
-                        ?>
+                <?php
+                $editor_settings = array(
+                    'textarea_name' => 'journal-entry',
+                    'textarea_rows' => 20,
+                    'editor_height' => 400,
+                    'media_buttons' => true,
+                    'tinymce' => array(
+                        'toolbar1' => 'formatselect,bold,italic,underline,bullist,numlist,link,unlink,undo,redo',
+                        'toolbar2' => '',
+                        'plugins' => 'link,lists,paste',
+                    ),
+                    'quicktags' => true,
+                );
+                wp_editor($entry, 'journal-entry', $editor_settings);
+                ?>
     
-                        <div class=" navigation">
+                <div class="navigation">
                     <button class="prev-day" <?php echo ($day <= 1) ? 'disabled' : ''; ?>>
-                                <?php _e('Previous Day', 'guided-journal'); ?>
-                            </button>
-                            <button class=" save-entry">
-                            <?php _e('Save Entry', 'guided-journal'); ?>
+                        <?php _e('Previous Day', 'guided-journal'); ?>
+                    </button>
+                    <button class="save-entry">
+                        <?php _e('Save Entry', 'guided-journal'); ?>
                     </button>
                     <button class="next-day" <?php echo ($day >= wp_count_posts('journal_prompt')->publish) ? 'disabled' : ''; ?>>
-                                <?php _e('Next Day', 'guided-journal'); ?>
-                            </button>
-                        </div>
-                    </div>
+                        <?php _e('Next Day', 'guided-journal'); ?>
+                    </button>
                 </div>
-                <?php
-                return ob_get_clean();
+            </div>
+        </div>
+        <?php
+        return ob_get_clean();
     }
 
     public function render_notification_container()
