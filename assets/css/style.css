@@ -183,110 +183,113 @@ body {
 
 /* Journal Entry Page */
 .journal-container {
-    max-width: 800px;
-    margin: 0 auto;
     background-color: var(--gj-container-background);
-    border-radius: 12px;
+    border-radius: 10px;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    padding: 2rem;
+    padding: 30px;
+    margin-top: 20px;
 }
 
 .journal-container h2 {
-    font-size: 1.5rem;
-    color: var(--gj-text);
-    margin-bottom: 1.5rem;
-    font-weight: 400;
     text-align: center;
+    color: var(--gj-text);
+    margin-bottom: 15px;
+    text-transform: uppercase;
 }
 
 .prompt {
-    background-color: rgba(255, 255, 255, 0.05);
-    border-left: 3px solid var(--gj-accent);
-    padding: 1.25rem;
-    margin-bottom: 2rem;
-    color: var(--gj-text);
+    background-color: #e0e0e0;
+    border-left: 4px solid var(--gj-accent);
+    padding: 15px;
+    margin-bottom: 20px;
+    color: #000000;
     font-style: italic;
-    border-radius: 0 6px 6px 0;
-    font-size: 0.95rem;
-    line-height: 1.6;
+    border-radius: 0 5px 5px 0;
 }
 
-/* Editor Styles */
+/* Editor Area */
 .wp-editor-container {
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 6px;
-    overflow: hidden;
-    margin-bottom: 1.5rem;
+    border: 1px solid #ddd;
+    margin-bottom: 20px;
 }
 
 .wp-editor-area {
-    background-color: var(--gj-card-background);
+    background: var(--gj-card-background);
     color: var(--gj-text);
-    padding: 1rem;
-    font-size: 1rem;
-    line-height: 1.6;
-    min-height: 300px;
+    min-height: 400px;
 }
 
 /* Navigation */
 .navigation-top {
-    margin-bottom: 2rem;
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 20px;
 }
 
 .contents-toggle {
-    display: inline-block;
-    padding: 0.5rem 1rem;
-    font-size: 0.85rem;
+    font-size: 14px;
+    font-weight: 600;
+    background-color: var(--gj-accent);
     color: var(--gj-text);
+    border: none;
+    padding: 10px 15px;
+    border-radius: 5px;
+    cursor: pointer;
     text-decoration: none;
-    opacity: 0.7;
-    transition: all 0.2s ease;
-    border-radius: 4px;
-    background-color: rgba(255, 255, 255, 0.1);
+    text-transform: uppercase;
+    display: inline-block;
+    transition: background-color 0.3s ease;
 }
 
 .contents-toggle:hover {
-    opacity: 1;
-    background-color: rgba(255, 255, 255, 0.15);
+    background-color: var(--gj-accent);
+    color: var(--gj-text);
+    text-decoration: none;
 }
 
 .navigation {
     display: flex;
-    gap: 1rem;
-    margin-top: 1.5rem;
+    justify-content: space-between;
+    gap: 20px;
+    margin-top: 20px;
 }
 
 .navigation button {
     flex: 1;
-    padding: 0.75rem 1rem;
-    background-color: rgba(255, 255, 255, 0.1);
+    padding: 12px;
+    background-color: #616161;
     color: var(--gj-text);
     border: none;
-    border-radius: 6px;
-    font-size: 0.9rem;
-    font-weight: 500;
-    letter-spacing: 0.5px;
-    transition: all 0.2s ease;
+    border-radius: 5px;
     cursor: pointer;
+    transition: background-color 0.3s ease;
+    font-size: 14px;
+    font-weight: 600;
+    text-transform: uppercase;
 }
 
 .navigation button:hover:not(:disabled) {
-    background-color: rgba(255, 255, 255, 0.15);
-    transform: translateY(-1px);
+    background-color: #2d2d2d;
 }
 
 .navigation button.save-entry {
     background-color: var(--gj-accent);
-    opacity: 0.9;
-}
-
-.navigation button.save-entry:hover {
-    opacity: 1;
 }
 
 .navigation button:disabled {
-    opacity: 0.4;
+    background-color: #616161;
     cursor: not-allowed;
+    opacity: 0.6;
+}
+
+@media (max-width: 768px) {
+    .journal-container {
+        padding: 15px;
+    }
+
+    .navigation {
+        flex-direction: column;
+    }
 }
 
 /* Save Status */
