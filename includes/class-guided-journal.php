@@ -6,9 +6,11 @@ use \WP_Error;
 
 class GuidedJournal {
     private $plugin_path;
+    private $stats;
 
     public function __construct() {
         $this->plugin_path = GUIDED_JOURNAL_PLUGIN_DIR;
+        $this->stats = new JournalStats();
     }
 
     public function init() {
@@ -19,6 +21,10 @@ class GuidedJournal {
         add_action('wp_enqueue_scripts', [$this, 'enqueue_assets']);
         add_action('wp_ajax_save_journal_entry', [$this, 'save_entry']);
         add_action('wp_ajax_get_journal_entries', [$this, 'get_entries']);
+
+        // Add new actions for stats
+        add_action('wp_footer', [$this, 'render_notification_container']);
+        add_filter('the_content', [$this, 'add_stats_to_entry_page']);
 
         // Basic access control - must be logged in
         add_action('template_redirect', function() {
@@ -146,6 +152,9 @@ class GuidedJournal {
         ?>
         <div class="container">
             <h1><?php _e('Guided Journal', 'guided-journal'); ?></h1>
+            
+            <?php echo $this->get_stats_html(); ?>
+            
             <div class="prompt-grid">
                 <?php
                 $the_query = new WP_Query([
@@ -165,7 +174,7 @@ class GuidedJournal {
                         $formatted_number = sprintf('%02d', $number);
                         $completed_class = in_array($number, $completed_entries) ? 'completed' : '';
                         ?>
-                        <a href="<?php the_permalink(); ?>" class="prompt-card <?php echo esc_attr($completed_class); ?>">
+                        <a href="<?php the_permalink(); ?>" class="prompt-card <?php echo esc_attr($completed_class); ?>" data-day="<?php echo esc_attr($number); ?>">
                             <span class="day-number"><?php echo esc_html($formatted_number); ?></span>
                         </a>
                     <?php
@@ -208,6 +217,8 @@ class GuidedJournal {
 
                 <div class="prompt"><?php echo wp_kses_post($prompt); ?></div>
 
+                <div class="journal-stats"></div>
+
                 <?php
                 // Initialize WordPress editor
                 $editor_settings = array(
@@ -224,6 +235,8 @@ class GuidedJournal {
                 wp_editor($entry, 'journal-entry', $editor_settings);
                 ?>
 
+                <div class="save-status">All changes saved</div>
+
                 <div class="navigation">
                     <button class="prev-day" <?php echo ($day <= 1) ? 'disabled' : ''; ?>>
                         <?php _e('Previous Day', 'guided-journal'); ?>
@@ -239,6 +252,12 @@ class GuidedJournal {
         </div>
         <?php
         return ob_get_clean();
+    }
+
+    public function render_notification_container() {
+        if (is_singular('journal_prompt') || strpos($_SERVER['REQUEST_URI'], '/entry') !== false) {
+            echo '<div id="journal-notification" class="journal-notification"></div>';
+        }
     }
 
     private function get_prompt($day) {
@@ -270,6 +289,14 @@ class GuidedJournal {
         global $wpdb;
         $table = $wpdb->prefix . 'journal_entries';
 
+        $entry_data = [
+            'user_id' => $user_id,
+            'day_number' => $day,
+            'entry_text' => $text,
+            'word_count' => intval($_POST['word_count']),
+            'time_spent' => intval($_POST['time_spent'])
+        ];
+
         $existing_entry = $wpdb->get_row($wpdb->prepare(
             "SELECT id FROM {$table} WHERE user_id = %d AND day_number = %d",
             $user_id,
@@ -300,7 +327,13 @@ class GuidedJournal {
             wp_send_json_error(__('Failed to save entry', 'guided-journal'));
         }
 
-        wp_send_json_success(['message' => __('Entry saved successfully', 'guided-journal')]);
+        // Save stats
+        $this->stats->save_entry($entry_data);
+
+        wp_send_json_success([
+            'message' => __('Entry saved successfully', 'guided-journal'),
+            'stats' => $this->stats->get_user_stats($user_id)
+        ]);
     }
 
     public function get_entries() {
@@ -318,5 +351,158 @@ class GuidedJournal {
         ));
 
         wp_send_json_success(['entries' => $entries]);
+    }
+
+    public function add_stats_to_entry_page($content) {
+        if (!is_singular('journal_prompt') || !is_user_logged_in()) {
+            return $content;
+        }
+
+        $stats_html = $this->get_stats_html();
+        return $content . $stats_html;
+    }
+
+    private function get_stats_html() {
+        $user_stats = $this->stats->get_user_stats(get_current_user_id());
+        
+        ob_start();
+        ?>
+        <div class="journal-stats-summary">
+            <h3><?php _e('Your Writing Stats', 'guided-journal'); ?></h3>
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <span class="stat-label"><?php _e('Total Words Written', 'guided-journal'); ?></span>
+                    <span class="stat-value"><?php echo number_format($user_stats['total_words']); ?></span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label"><?php _e('Writing Streak', 'guided-journal'); ?></span>
+                    <span class="stat-value"><?php echo $user_stats['streak']; ?> days</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label"><?php _e('Average Words per Entry', 'guided-journal'); ?></span>
+                    <span class="stat-value"><?php echo $user_stats['avg_words']; ?></span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label"><?php _e('Total Time Writing', 'guided-journal'); ?></span>
+                    <span class="stat-value"><?php echo $this->format_time_spent($user_stats['total_time']); ?></span>
+                </div>
+            </div>
+        </div>
+        <?php
+        return ob_get_clean();
+    }
+
+    private function format_time_spent($seconds) {
+        if ($seconds < 60) {
+            return __('Less than a minute', 'guided-journal');
+        }
+
+        $hours = floor($seconds / 3600);
+        $minutes = floor(($seconds % 3600) / 60);
+        
+        if ($hours > 0) {
+            return sprintf(
+                _n('%d hour', '%d hours', $hours, 'guided-journal'),
+                $hours
+            ) . ' ' . sprintf(
+                _n('%d minute', '%d minutes', $minutes, 'guided-journal'),
+                $minutes
+            );
+        }
+        
+        return sprintf(_n('%d minute', '%d minutes', $minutes, 'guided-journal'), $minutes);
+    }
+
+    private function get_completion_percentage() {
+        $total_prompts = wp_count_posts('journal_prompt')->publish;
+        if ($total_prompts === 0) {
+            return 0;
+        }
+
+        global $wpdb;
+        $completed_entries = $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(DISTINCT day_number) 
+            FROM {$wpdb->prefix}journal_entries 
+            WHERE user_id = %d",
+            get_current_user_id()
+        ));
+
+        return round(($completed_entries / $total_prompts) * 100);
+    }
+
+    public function get_journal_stats() {
+        check_ajax_referer('journal_nonce', 'nonce');
+
+        if (!is_user_logged_in()) {
+            wp_send_json_error(__('Please log in to view stats', 'guided-journal'));
+        }
+
+        $user_id = get_current_user_id();
+        $stats = $this->stats->get_user_stats($user_id);
+        $stats['completion_percentage'] = $this->get_completion_percentage();
+
+        wp_send_json_success($stats);
+    }
+
+    private function validate_entry_data($data) {
+        $errors = [];
+        
+        if (empty($data['day']) || !is_numeric($data['day'])) {
+            $errors[] = __('Invalid day number', 'guided-journal');
+        }
+        
+        if (empty($data['text'])) {
+            $errors[] = __('Entry text cannot be empty', 'guided-journal');
+        }
+        
+        if (!isset($data['word_count']) || !is_numeric($data['word_count'])) {
+            $errors[] = __('Invalid word count', 'guided-journal');
+        }
+        
+        if (!isset($data['time_spent']) || !is_numeric($data['time_spent'])) {
+            $errors[] = __('Invalid time spent', 'guided-journal');
+        }
+        
+        return empty($errors) ? true : $errors;
+    }
+
+    private function sanitize_entry_data($data) {
+        return [
+            'day' => intval($data['day']),
+            'text' => wp_kses_post($data['text']),
+            'word_count' => intval($data['word_count']),
+            'time_spent' => intval($data['time_spent'])
+        ];
+    }
+
+    public function get_user_journal_data() {
+        if (!is_user_logged_in()) {
+            return false;
+        }
+
+        global $wpdb;
+        $user_id = get_current_user_id();
+
+        $entries = $wpdb->get_results($wpdb->prepare(
+            "SELECT e.*, s.word_count, s.time_spent 
+            FROM {$wpdb->prefix}journal_entries e 
+            LEFT JOIN {$wpdb->prefix}journal_stats s 
+            ON e.user_id = s.user_id AND e.day_number = s.day_number 
+            WHERE e.user_id = %d 
+            ORDER BY e.day_number ASC",
+            $user_id
+        ));
+
+        if (!$entries) {
+            return false;
+        }
+
+        $stats = $this->stats->get_user_stats($user_id);
+        
+        return [
+            'entries' => $entries,
+            'stats' => $stats,
+            'completion_percentage' => $this->get_completion_percentage()
+        ];
     }
 }
