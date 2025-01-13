@@ -90,6 +90,15 @@ body {
     background-color: var(--gj-accent);
 }
 
+
+/* Completed Prompt Card */
+.prompt-card.completed {
+    background-color: var(--gj-completed-background);
+    border: 2px solid var(--gj-completed-border);
+    color: var(--gj-completed-text);
+}
+
+
 .day-number {
     font-size: 28px;
     font-weight: 600;
