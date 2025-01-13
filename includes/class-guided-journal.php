@@ -7,73 +7,35 @@ use \WP_Error;
 class GuidedJournal
 {
     private $plugin_path;
-    private $test_mode;
 
     public function __construct()
     {
         $this->plugin_path = GUIDED_JOURNAL_PLUGIN_DIR;
-        $this->test_mode = get_option('guided_journal_test_mode', true);
     }
 
     public function init()
     {
         add_action('init', [$this, 'register_post_types']);
         add_filter('template_include', [$this, 'load_journal_templates'], 99);
-        // add_action('admin_menu', [$this, 'add_admin_menu']);
         add_shortcode('journal_grid', [$this, 'render_grid']);
         add_shortcode('journal_entry', [$this, 'render_entry_page']);
         add_action('wp_enqueue_scripts', [$this, 'enqueue_assets']);
         add_action('wp_ajax_save_journal_entry', [$this, 'save_entry']);
         add_action('wp_ajax_get_journal_entries', [$this, 'get_entries']);
 
-        // Journal access control
+        // Basic access control - must be logged in
         add_action('template_redirect', function () {
-            global $post;
-
             if (
                 strpos($_SERVER['REQUEST_URI'], '/grid') !== false ||
                 strpos($_SERVER['REQUEST_URI'], '/entry') !== false ||
-                (is_singular('journal_prompt') && $post)
+                is_singular('journal_prompt')
             ) {
                 if (!is_user_logged_in()) {
-                    wp_redirect(home_url('/'));
-                    exit;
-                }
-
-                $user = wp_get_current_user();
-                $allowed_roles = ['administrator', 'menoffire', 'ignite30'];
-                $has_access = array_intersect($allowed_roles, (array) $user->roles);
-
-                if (empty($has_access)) {
-                    wp_redirect(home_url('/'));
+                    wp_redirect(wp_login_url(get_permalink()));
                     exit;
                 }
             }
         });
-    }
-
-    /**
-     * Load journal templates
-     */
-    public function load_journal_templates($template)
-    {
-        if (is_singular('journal_prompt')) {
-            // First try to find the template in the theme
-            $theme_template = locate_template('single-journal_prompt.php');
-
-            if ($theme_template) {
-                return $theme_template;
-            }
-
-            // If not found in theme, use plugin template
-            $plugin_template = $this->plugin_path . 'templates/single-journal_prompt.php';
-
-            if (file_exists($plugin_template)) {
-                return $plugin_template;
-            }
-        }
-
-        return $template;
     }
 
     public function register_post_types()
@@ -119,6 +81,24 @@ class GuidedJournal
         register_post_type('journal_prompt', $args);
     }
 
+    public function load_journal_templates($template)
+    {
+        if (is_singular('journal_prompt')) {
+            $theme_template = locate_template('single-journal_prompt.php');
+
+            if ($theme_template) {
+                return $theme_template;
+            }
+
+            $plugin_template = $this->plugin_path . 'templates/single-journal_prompt.php';
+
+            if (file_exists($plugin_template)) {
+                return $plugin_template;
+            }
+        }
+        return $template;
+    }
+
     public function enqueue_assets()
     {
         wp_enqueue_style(
@@ -142,42 +122,16 @@ class GuidedJournal
         ]);
     }
 
-    // public function add_admin_menu()
-    // {
-    //     // Add menu page for Journal Prompts
-    //     add_menu_page(
-    //         __('Journal Prompts', 'guided-journal'),
-    //         __('Journal Prompts', 'guided-journal'),
-    //         'manage_options',
-    //         'guided-journal',
-    //         [$this, 'render_admin_page'],
-    //         'dashicons-book-alt',
-    //         20
-    //     );
-
-    //     // Add submenu for creating prompts
-    //     add_submenu_page(
-    //         'guided-journal',
-    //         __('Create Prompts', 'guided-journal'),
-    //         __('Create Prompts', 'guided-journal'),
-    //         'manage_options',
-    //         'guided-journal-create',
-    //         [$this, 'render_create_prompts_page']
-    //     );
-    // }
-
-    // public function render_admin_page()
-    // {
-    //     include($this->plugin_path . 'templates/admin-page.php');
-    // }
-
-    public function render_create_prompts_page()
-    {
-        include($this->plugin_path . 'templates/create-prompts-page.php');
-    }
-
     public function render_grid($atts)
     {
+        if (!is_user_logged_in()) {
+            return sprintf(
+                '<p>%s</p>',
+                __('Please <a href="%s">log in</a> to view your journal.', 'guided-journal'),
+                wp_login_url(get_permalink())
+            );
+        }
+
         ob_start();
         ?>
         <div class="container">
@@ -198,14 +152,16 @@ class GuidedJournal
                     while ($the_query->have_posts()):
                         $the_query->the_post();
                         $number = intval(get_the_title());
-                        $formatted_number = sprintf('%02d', $number); // Pad with zeros
+                        $formatted_number = sprintf('%02d', $number);
                         ?>
                         <a href="<?php the_permalink(); ?>" class="prompt-card">
                             <span class="day-number"><?php echo esc_html($formatted_number); ?></span>
                         </a>
-                    <?php endwhile;
+                        <?php
+                    endwhile;
                     wp_reset_postdata();
-                endif; ?>
+                endif;
+                ?>
             </div>
         </div>
         <?php
@@ -214,6 +170,14 @@ class GuidedJournal
 
     public function render_entry_page($atts)
     {
+        if (!is_user_logged_in()) {
+            return sprintf(
+                '<p>%s</p>',
+                __('Please <a href="%s">log in</a> to view your journal.', 'guided-journal'),
+                wp_login_url(get_permalink())
+            );
+        }
+
         ob_start();
         $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
         $slug = basename($path);
@@ -274,9 +238,8 @@ class GuidedJournal
     {
         check_ajax_referer('journal_nonce', 'nonce');
 
-        $user = wp_get_current_user();
-        if (!in_array('menoffire', $user->roles) && !in_array('administrator', $user->roles) && !in_array('ignite30', $user->roles)) {
-            wp_send_json_error(__('Unauthorized access', 'guided-journal'));
+        if (!is_user_logged_in()) {
+            wp_send_json_error(__('Please log in to save entries', 'guided-journal'));
         }
 
         $user_id = get_current_user_id();
@@ -324,7 +287,7 @@ class GuidedJournal
         check_ajax_referer('journal_nonce', 'nonce');
 
         if (!is_user_logged_in()) {
-            wp_send_json_error(__('Unauthorized access', 'guided-journal'));
+            wp_send_json_error(__('Please log in to view entries', 'guided-journal'));
         }
 
         global $wpdb;

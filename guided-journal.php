@@ -1,7 +1,7 @@
 <?php
 /**
  * Plugin Name: Guided Journal
- * Description: A guided journal system with Circle Community SSO integration
+ * Description: A customizable guided journal system for WordPress
  * Version: 1.0
  * Author: Your Name
  * Text Domain: guided-journal
@@ -15,7 +15,7 @@ define('GUIDED_JOURNAL_VERSION', '1.0.0');
 define('GUIDED_JOURNAL_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('GUIDED_JOURNAL_PLUGIN_URL', plugin_dir_url(__FILE__));
 
-// Include required files directly
+// Include required files
 require_once GUIDED_JOURNAL_PLUGIN_DIR . 'includes/class-guided-journal.php';
 require_once GUIDED_JOURNAL_PLUGIN_DIR . 'includes/class-journal-roles.php';
 require_once GUIDED_JOURNAL_PLUGIN_DIR . 'includes/class-guided-journal-settings.php';
@@ -27,7 +27,7 @@ function guided_journal_init()
     $plugin->register_post_types();
     $plugin->init();
 
-    // Initialize roles (with updated method name)
+    // Initialize roles
     $roles = new GuidedJournal\JournalRoles();
     $roles->initialize_roles();
 
@@ -36,17 +36,8 @@ function guided_journal_init()
 
     return $plugin;
 }
-// Auth0 user handling
-add_action('auth0_user_login', function ($user_id, $user_data) {
-    // check if Auth0 user is email verified
-    if (!isset($user_data->email_verified) || !$user_data->email_verified) {
-        // Redirect to email verification page
-        wp_redirect(home_url('/verify-email/'));
-        exit;
-    }
-}, 10, 2);
 
-// Start the plugin on init to ensure post types are registered early
+// Start the plugin on init
 add_action('init', 'guided_journal_init', 0);
 
 // Activation hook
@@ -59,14 +50,13 @@ function guided_journal_activate()
 
     // Initialize roles
     $roles = new GuidedJournal\JournalRoles();
-    $roles->create_journal_role();
+    $roles->create_journal_roles();
 
     // Flush rewrite rules
     flush_rewrite_rules();
 
-    global $wpdb;
-
     // Create journal entries table
+    global $wpdb;
     $charset_collate = $wpdb->get_charset_collate();
     $sql = "CREATE TABLE IF NOT EXISTS {$wpdb->prefix}journal_entries (
         id bigint(20) NOT NULL AUTO_INCREMENT,
