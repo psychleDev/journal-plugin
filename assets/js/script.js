@@ -66,43 +66,6 @@ jQuery(document).ready(function ($) {
         return 1;
     }
 
-    // Entries list toggle
-    $('.list-toggle').on('click', function () {
-        const $list = $('.entries-list');
-        if ($list.hasClass('active')) {
-            $list.removeClass('active');
-            return;
-        }
-
-        $.ajax({
-            url: journalAjax.ajaxurl,
-            type: 'POST',
-            data: {
-                action: 'get_journal_entries',
-                nonce: journalAjax.nonce
-            },
-            success: function (response) {
-                if (response.success) {
-                    $list.empty();
-                    response.data.entries.forEach(entry => {
-                        const date = new Date(entry.created_at);
-                        const formattedDate = date.toLocaleDateString();
-                        const formattedDay = String(entry.day_number).padStart(3, '0');
-
-                        $list.append(`
-                            <div class="entry-item">
-                                <span>Day ${entry.day_number} - ${formattedDate}</span>
-                                <span class="entry-status">Completed</span>
-                                <a href="/journal-prompts/${formattedDay}/">View</a>
-                            </div>
-                        `);
-                    });
-                    $list.addClass('active');
-                }
-            }
-        });
-    });
-
     // Initialize WordPress editor if available
     if (typeof tinyMCE !== 'undefined') {
         tinyMCE.on('AddEditor', function (e) {
