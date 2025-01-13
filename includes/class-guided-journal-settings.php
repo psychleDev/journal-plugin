@@ -119,6 +119,7 @@ class GuidedJournalSettings
         <?php
     }
 
+    // In class-guided-journal-settings.php, update the render_settings_page method:
     public function render_settings_page()
     {
         if (!current_user_can('manage_options')) {
@@ -147,7 +148,8 @@ class GuidedJournalSettings
                         'card_background' => ['Card Background', 'Background color for journal entry cards'],
                         'text' => ['Text Color', 'Color for all text content'],
                         'accent' => ['Accent Color', 'Color for buttons and highlights'],
-                        'container_background' => ['Container Background', 'Background color for content containers']
+                        'container_background' => ['Container Background', 'Background color for content containers'],
+                        'completed' => ['Completed Color', 'Background color for completed journal entries']
                     ];
 
                     foreach ($color_fields as $key => $labels) {
