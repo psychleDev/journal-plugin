@@ -90,14 +90,20 @@ body {
     background-color: var(--gj-accent);
 }
 
-
 /* Completed Prompt Card */
 .prompt-card.completed {
-    background-color: var(--gj-completed-background);
-    border: 2px solid var(--gj-completed-border);
-    color: var(--gj-completed-text);
+    background-color: var(--gj-completed);
+    border: 2px solid var(--gj-completed);
 }
 
+.prompt-card.completed .day-number {
+    color: var(--gj-text);
+}
+
+.prompt-card.completed:hover {
+    background-color: var(--gj-accent);
+    border-color: var(--gj-accent);
+}
 
 .day-number {
     font-size: 28px;
@@ -109,10 +115,6 @@ body {
 
 .prompt-card:hover .day-number {
     color: var(--gj-text);
-}
-
-.prompt-card.completed {
-    border: 2px solid var(--gj-accent);
 }
 
 /* Journal Container */

@@ -9,7 +9,8 @@ class GuidedJournalSettings
         'card_background' => '#1b1b1b',
         'text' => '#ffffff',
         'accent' => '#991B1E',
-        'container_background' => '#494949'
+        'container_background' => '#494949',
+        'completed' => '#2E7D32'  // Add this new default color
     ];
 
     public function __construct()
