@@ -417,3 +417,36 @@ body {
         gap: 10px;
     }
 }
+
+.wp-editor-container {
+    border: 1px solid #ddd;
+    margin-bottom: 20px;
+}
+
+.wp-editor-area {
+    background: var(--gj-card-background);
+    color: var(--gj-text);
+}
+
+.mce-content-body {
+    background-color: var(--gj-card-background);
+    color: var(--gj-text);
+    padding: 10px;
+    min-height: 300px;
+}
+
+/* Style for the media buttons */
+.wp-media-buttons {
+    margin-bottom: 10px;
+}
+
+/* Editor toolbar styling */
+.mce-toolbar .mce-btn button {
+    padding: 4px;
+}
+
+/* Quicktags editor styling */
+.quicktags-toolbar {
+    background: var(--gj-container-background);
+    border-bottom: 1px solid #ddd;
+}
