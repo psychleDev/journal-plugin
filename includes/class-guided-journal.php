@@ -95,6 +95,12 @@ class GuidedJournal {
     }
 
     public function enqueue_assets() {
+        // Only enqueue editor assets on journal entry pages
+        if (is_singular('journal_prompt') || strpos($_SERVER['REQUEST_URI'], '/entry') !== false) {
+            wp_enqueue_editor();
+            wp_enqueue_media();
+        }
+
         wp_enqueue_style(
             'guided-journal-style',
             GUIDED_JOURNAL_PLUGIN_URL . 'assets/css/style.css',
@@ -172,7 +178,6 @@ class GuidedJournal {
         <?php
         return ob_get_clean();
     }
-    
 
     public function render_entry_page($atts) {
         if (!is_user_logged_in()) {
@@ -203,7 +208,21 @@ class GuidedJournal {
 
                 <div class="prompt"><?php echo wp_kses_post($prompt); ?></div>
 
-                <textarea id="journal-entry" class="entry-text"><?php echo esc_textarea($entry); ?></textarea>
+                <?php
+                // Initialize WordPress editor
+                $editor_settings = array(
+                    'textarea_name' => 'journal-entry',
+                    'textarea_rows' => 10,
+                    'media_buttons' => true,
+                    'tinymce'       => array(
+                        'toolbar1'  => 'formatselect,bold,italic,underline,bullist,numlist,link,unlink,undo,redo',
+                        'toolbar2'  => '',
+                        'plugins'   => 'link,lists,paste',
+                    ),
+                    'quicktags'     => true,
+                );
+                wp_editor($entry, 'journal-entry', $editor_settings);
+                ?>
 
                 <div class="navigation">
                     <button class="prev-day" <?php echo ($day <= 1) ? 'disabled' : ''; ?>>
@@ -246,7 +265,7 @@ class GuidedJournal {
 
         $user_id = get_current_user_id();
         $day = intval($_POST['day']);
-        $text = sanitize_textarea_field($_POST['text']);
+        $text = wp_kses_post($_POST['text']);
 
         global $wpdb;
         $table = $wpdb->prefix . 'journal_entries';
