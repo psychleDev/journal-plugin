@@ -16,6 +16,10 @@ jQuery(document).ready(function ($) {
             success: function (response) {
                 if (response.success) {
                     alert(response.data.message);
+
+                    // Mark the corresponding grid item as completed
+                    const targetCard = $('.prompt-card[data-day="' + currentDay + '"]');
+                    targetCard.addClass('completed');
                 } else {
                     alert(response.data.message || 'Failed to save entry');
                 }
