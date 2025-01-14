@@ -71,6 +71,7 @@ error_log('Loading journal prompt template for day: ' . $current_day);
                                 wp_editor($entry_content, 'journal-entry', $editor_settings);
                                 ?>
 
+                                // Add this to your navigation section in single-journal_prompt.php
                                 <div class="navigation">
                                     <button class="prev-day" <?php echo ($current_day <= 1) ? 'disabled' : ''; ?>>
                                         <?php _e('Previous Day', 'guided-journal'); ?>
@@ -85,11 +86,35 @@ error_log('Loading journal prompt template for day: ' . $current_day);
                                     </button>
 
                                     <div class="share-button-container">
-                                        <!-- Fallback share button that will be replaced by JS -->
                                         <button class="share-entry contents-toggle">
                                             <span class="dashicons dashicons-share"></span>
                                             <?php _e('Share Entry', 'guided-journal'); ?>
                                         </button>
+                                        <div class="share-popup" style="display: none;">
+                                            <div class="share-content">
+                                                <h3><?php _e('Share Entry', 'guided-journal'); ?></h3>
+                                                <div class="share-link-container">
+                                                    <input type="text" class="share-link" readonly>
+                                                    <button class="copy-link contents-toggle">
+                                                        <span class="dashicons dashicons-clipboard"></span>
+                                                        <?php _e('Copy', 'guided-journal'); ?>
+                                                    </button>
+                                                </div>
+                                                <div class="share-options">
+                                                    <button class="email-share contents-toggle">
+                                                        <span class="dashicons dashicons-email"></span>
+                                                        <?php _e('Email', 'guided-journal'); ?>
+                                                    </button>
+                                                    <button class="twitter-share contents-toggle">
+                                                        <span class="dashicons dashicons-twitter"></span>
+                                                        <?php _e('Twitter', 'guided-journal'); ?>
+                                                    </button>
+                                                </div>
+                                                <div class="share-info">
+                                                    <?php _e('Link expires in 24 hours and can be viewed up to 3 times', 'guided-journal'); ?>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
 
