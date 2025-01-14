@@ -107,6 +107,8 @@ class GuidedJournalSharing
             );
 
             if ($result === false) {
+                $error = $this->wpdb->last_error;
+                error_log('Share Token Generation Error: Database insert failed. Error: ' . $error);
                 wp_send_json_error(['message' => __('Failed to generate share link', 'guided-journal')]);
             }
 
