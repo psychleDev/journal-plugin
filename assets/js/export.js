@@ -1,9 +1,21 @@
 jQuery(document).ready(function ($) {
+    console.log('Export script initialized');
+    console.log('Looking for export buttons:', $('.export-entries').length);
+
     // Handle export button click
     $(document).on('click', '.export-entries', function (e) {
+        console.log('Export button clicked');
         e.preventDefault();
         const $button = $(this);
         const originalText = $button.text();
+
+        // Verify nonce is available
+        console.log('Checking journalAjax:', journalAjax);
+        if (!journalAjax || !journalAjax.nonce) {
+            console.error('journalAjax or nonce not found');
+            showError('Configuration error. Please refresh the page.');
+            return;
+        }
 
         // Show loading state
         $button.text('Exporting...').prop('disabled', true);
@@ -22,16 +34,19 @@ jQuery(document).ready(function ($) {
                 responseType: 'blob'
             },
             success: function (response, status, xhr) {
+                console.log('Export ajax success:', { status, contentType: xhr.getResponseHeader('content-type') });
                 const contentType = xhr.getResponseHeader('content-type');
 
                 // Check if response is JSON (error message)
                 if (contentType && contentType.indexOf('application/json') > -1) {
+                    console.log('Received JSON response instead of blob');
                     const reader = new FileReader();
                     reader.onload = function () {
                         try {
                             const jsonResponse = JSON.parse(this.result);
                             showError(jsonResponse.data.message || 'Export failed. Please try again.');
                         } catch (e) {
+                            console.error('Error parsing JSON response:', e);
                             showError('Export failed. Please try again.');
                         }
                     };
@@ -49,6 +64,8 @@ jQuery(document).ready(function ($) {
                     ? xhr.getResponseHeader('content-disposition').split('filename=')[1].replace(/"/g, '')
                     : 'journal-entries.csv';
 
+                console.log('Creating download with filename:', filename);
+
                 // Create download link
                 const url = window.URL.createObjectURL(blob);
                 const link = document.createElement('a');
@@ -63,7 +80,7 @@ jQuery(document).ready(function ($) {
                 showSuccess('Export completed successfully!');
             },
             error: function (xhr, status, error) {
-                console.error('Export error:', { xhr, status, error });
+                console.error('Export ajax error:', { xhr, status, error });
                 let errorMessage = 'Export failed. Please try again.';
 
                 try {
@@ -80,6 +97,7 @@ jQuery(document).ready(function ($) {
                 showError(errorMessage);
             },
             complete: function () {
+                console.log('Export ajax complete');
                 // Reset button state
                 $button.text(originalText).prop('disabled', false);
             }
@@ -88,6 +106,7 @@ jQuery(document).ready(function ($) {
 
     // Helper function to show error message
     function showError(message) {
+        console.log('Showing error:', message);
         const $error = $('<div class="journal-notification error"></div>')
             .text(message)
             .appendTo('body');
@@ -101,6 +120,7 @@ jQuery(document).ready(function ($) {
 
     // Helper function to show success message
     function showSuccess(message) {
+        console.log('Showing success:', message);
         const $success = $('<div class="journal-notification success"></div>')
             .text(message)
             .appendTo('body');
