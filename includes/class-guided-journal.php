@@ -104,20 +104,21 @@ class GuidedJournal
 
     public function enqueue_assets()
     {
-        // Debug the plugin URL
-        error_log('Plugin URL: ' . GUIDED_JOURNAL_PLUGIN_URL);
-        error_log('Plugin Directory: ' . GUIDED_JOURNAL_PLUGIN_DIR);
+        // Debug path information
+        $plugin_path = dirname(dirname(__FILE__));
+        $plugin_url = plugins_url('', dirname(__FILE__));
+        error_log('Plugin absolute path: ' . $plugin_path);
+        error_log('Plugin URL: ' . $plugin_url);
 
-        // Only enqueue editor assets on journal entry pages
-        if (is_singular('journal_prompt') || strpos($_SERVER['REQUEST_URI'], '/entry') !== false) {
-            wp_enqueue_editor();
-            wp_enqueue_media();
-        }
+        // Current post/page debug
+        global $post;
+        error_log('Current post ID: ' . ($post ? $post->ID : 'no post'));
+        error_log('Current post type: ' . ($post ? $post->post_type : 'no post type'));
 
-        // Enqueue main CSS
+        // Enqueue main CSS - use direct path to css folder
         wp_enqueue_style(
             'guided-journal-style',
-            plugin_dir_url(__FILE__) . 'assets/css/style.css',
+            $plugin_url . '/assets/css/style.css',
             [],
             GUIDED_JOURNAL_VERSION
         );
@@ -125,7 +126,7 @@ class GuidedJournal
         // Enqueue main script
         wp_enqueue_script(
             'guided-journal-script',
-            plugin_dir_url(__FILE__) . 'assets/js/script.js',
+            $plugin_url . '/assets/js/script.js',
             ['jquery'],
             GUIDED_JOURNAL_VERSION,
             true
@@ -140,23 +141,22 @@ class GuidedJournal
             'maxDay' => $max_day
         ]);
 
-        // Debug current post type
-        error_log('Current post type: ' . get_post_type());
-        error_log('Is singular journal_prompt: ' . (is_singular('journal_prompt') ? 'yes' : 'no'));
+        // Force check for journal prompt post type
+        global $post;
+        $is_journal_prompt = ($post && $post->post_type === 'journal_prompt');
+        error_log('Is journal prompt (direct check): ' . ($is_journal_prompt ? 'yes' : 'no'));
 
-        // Enqueue share functionality on single journal prompt pages
-        if (is_singular('journal_prompt')) {
-            // Debug sharing script path
-            $sharing_url = plugin_dir_url(__FILE__) . 'assets/js/sharing.js';
-            error_log('Sharing script URL: ' . $sharing_url);
+        // Enqueue share functionality on journal prompt pages
+        if ($is_journal_prompt) {
+            error_log('Loading share functionality');
 
             // Enqueue Dashicons
             wp_enqueue_style('dashicons');
 
-            // Enqueue sharing script
+            // Enqueue sharing script with direct path
             wp_enqueue_script(
                 'guided-journal-sharing',
-                $sharing_url,
+                $plugin_url . '/assets/js/sharing.js',
                 ['jquery'],
                 GUIDED_JOURNAL_VERSION,
                 true
@@ -174,7 +174,13 @@ class GuidedJournal
                 ]
             ]);
 
-            error_log('Share script enqueued with URL: ' . $sharing_url);
+            error_log('Share script enqueued');
+        }
+
+        // Only enqueue editor assets on journal entry pages
+        if ($is_journal_prompt || strpos($_SERVER['REQUEST_URI'], '/entry') !== false) {
+            wp_enqueue_editor();
+            wp_enqueue_media();
         }
     }
 
