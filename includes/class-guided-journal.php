@@ -519,13 +519,25 @@ class GuidedJournal {
                 );
             }
     
-            // Generate filename
+            // Get user info and generate filename
             $user = wp_get_current_user();
-            $filename = sanitize_file_name('journal-entries-' . $user->user_login . '-' . date('Y-m-d') . '.csv');
+            $username = sanitize_file_name($user->display_name);
+            if (empty(trim($username))) {
+                $username = sanitize_file_name($user->user_login);
+            }
     
-            // Clear any previous output and set headers
-            if (headers_sent($filename, $linenum)) {
-                throw new \Exception("Headers already sent in $filename on line $linenum");
+            // Create filename with date
+            $date = current_time('Y-m-d');
+            $filename = sprintf(
+                'My-Journal-Entries_%s_%s.csv',
+                $username,
+                $date
+            );
+            $filename = sanitize_file_name($filename);
+    
+            // Clear any previous output and check headers
+            if (headers_sent($file, $line)) {
+                throw new \Exception("Headers already sent in $file on line $line");
             }
     
             // Send headers
@@ -538,7 +550,7 @@ class GuidedJournal {
             // Create output handle
             $output = fopen('php://output', 'w');
     
-            // Add UTF-8 BOM
+            // Add UTF-8 BOM for Excel compatibility
             fputs($output, "\xEF\xBB\xBF");
     
             // Write data
