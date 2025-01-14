@@ -123,15 +123,10 @@ class GuidedJournal
         error_log('Plugin absolute path: ' . $plugin_path);
         error_log('Plugin URL: ' . $plugin_url);
 
-        // Current post/page debug
-        global $post;
-        error_log('Current post ID: ' . ($post ? $post->ID : 'no post'));
-        error_log('Current post type: ' . ($post ? $post->post_type : 'no post type'));
-
-        // Enqueue main CSS - use direct path to css folder
+        // Enqueue main CSS
         wp_enqueue_style(
             'guided-journal-style',
-            $plugin_url . '/assets/css/style.css',
+            GUIDED_JOURNAL_PLUGIN_URL . '/assets/css/style.css',
             [],
             GUIDED_JOURNAL_VERSION
         );
@@ -139,7 +134,7 @@ class GuidedJournal
         // Enqueue main script
         wp_enqueue_script(
             'guided-journal-script',
-            $plugin_url . '/assets/js/script.js',
+            GUIDED_JOURNAL_PLUGIN_URL . '/assets/js/script.js',
             ['jquery'],
             GUIDED_JOURNAL_VERSION,
             true
@@ -154,22 +149,18 @@ class GuidedJournal
             'maxDay' => $max_day
         ]);
 
-        // Force check for journal prompt post type
+        // Determine if we're on a journal prompt page
         global $post;
         $is_journal_prompt = ($post && $post->post_type === 'journal_prompt');
-        error_log('Is journal prompt (direct check): ' . ($is_journal_prompt ? 'yes' : 'no'));
 
-        // Enqueue share functionality on journal prompt pages
         if ($is_journal_prompt) {
-            error_log('Loading share functionality');
-
             // Enqueue Dashicons
             wp_enqueue_style('dashicons');
 
-            // Enqueue sharing script with direct path
+            // Enqueue sharing script
             wp_enqueue_script(
                 'guided-journal-sharing',
-                $plugin_url . '/assets/js/sharing.js',
+                GUIDED_JOURNAL_PLUGIN_URL . '/assets/js/sharing.js',
                 ['jquery'],
                 GUIDED_JOURNAL_VERSION,
                 true
@@ -187,10 +178,11 @@ class GuidedJournal
                 ]
             ]);
 
-            error_log('Share script enqueued');
+            // Debug enqueue
+            error_log('Share script enqueued for journal prompt');
         }
 
-        // Only enqueue editor assets on journal entry pages
+        // Check if we're editing an entry
         if ($is_journal_prompt || strpos($_SERVER['REQUEST_URI'], '/entry') !== false) {
             wp_enqueue_editor();
             wp_enqueue_media();
@@ -232,7 +224,7 @@ class GuidedJournal
                 <script>
                     console.log('Export script loaded. journalAjax object:', journalAjax);
                 </script>
-                    <?php
+                <?php
             }, 999);
         }
     }
