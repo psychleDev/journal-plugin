@@ -5,6 +5,8 @@
  * Version: 2.0
  * Author: Steadfast Creative Solutions LLC.
  * Text Domain: universal-guided-journal
+ * Plugin URI: https://steadfast-creative.com/wordpress-guided-journal-plugin/docs
+
  */
 
 // Prevent direct access
