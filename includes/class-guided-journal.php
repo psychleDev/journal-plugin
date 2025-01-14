@@ -85,14 +85,14 @@ class GuidedJournal {
             wp_enqueue_editor();
             wp_enqueue_media();
         }
-
+    
         wp_enqueue_style(
             'guided-journal-style',
             GUIDED_JOURNAL_PLUGIN_URL . 'assets/css/style.css',
             [],
             GUIDED_JOURNAL_VERSION
         );
-
+    
         wp_enqueue_script(
             'guided-journal-script',
             GUIDED_JOURNAL_PLUGIN_URL . 'assets/js/script.js',
@@ -100,44 +100,43 @@ class GuidedJournal {
             GUIDED_JOURNAL_VERSION,
             true
         );
-
+    
         // Get the total number of prompts
         $max_day = wp_count_posts('journal_prompt')->publish;
-
+    
         wp_localize_script('guided-journal-script', 'journalAjax', [
             'ajaxurl' => admin_url('admin-ajax.php'),
             'nonce' => wp_create_nonce('journal_nonce'),
             'maxDay' => $max_day
         ]);
-    }
-
-    public function enqueue_export_script() {
-        if (is_singular('journal_prompt') || strpos($_SERVER['REQUEST_URI'], '/grid') !== false) {
+    
+        // Enqueue share functionality on single journal prompt pages
+        if (is_singular('journal_prompt')) {
+            // Enqueue Dashicons
+            wp_enqueue_style('dashicons');
+            
+            // Enqueue share script
             wp_enqueue_script(
-                'guided-journal-export',
-                GUIDED_JOURNAL_PLUGIN_URL . 'assets/js/export.js',
+                'guided-journal-share',
+                GUIDED_JOURNAL_PLUGIN_URL . 'assets/js/sharing.js',
                 ['jquery'],
                 GUIDED_JOURNAL_VERSION,
                 true
             );
+    
+            // Localize script for sharing
+            wp_localize_script('guided-journal-share', 'journalShare', [
+                'ajaxurl' => admin_url('admin-ajax.php'),
+                'nonce' => wp_create_nonce('journal_share_nonce'),
+                'i18n' => [
+                    'copySuccess' => __('Copied!', 'guided-journal'),
+                    'copyError' => __('Failed to copy', 'guided-journal'),
+                    'generateError' => __('Failed to generate share link', 'guided-journal'),
+                    'shareSubject' => __('Check out my journal entry', 'guided-journal'),
+                    'shareText' => __('I wanted to share this journal entry with you:', 'guided-journal')
+                ]
+            ]);
         }
-    }
-
-    public function load_journal_templates($template) {
-        if (is_singular('journal_prompt')) {
-            $theme_template = locate_template('single-journal_prompt.php');
-            
-            if ($theme_template) {
-                return $theme_template;
-            }
-            
-            $plugin_template = $this->plugin_path . 'templates/single-journal_prompt.php';
-            
-            if (file_exists($plugin_template)) {
-                return $plugin_template;
-            }
-        }
-        return $template;
     }
 
     public function render_grid($atts) {
