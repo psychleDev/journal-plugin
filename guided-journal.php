@@ -23,7 +23,6 @@ require_once GUIDED_JOURNAL_PLUGIN_DIR . 'includes/class-guided-journal-settings
 require_once GUIDED_JOURNAL_PLUGIN_DIR . 'includes/class-journal-stats.php';
 require_once GUIDED_JOURNAL_PLUGIN_DIR . 'includes/class-guided-journal-sharing.php';
 
-
 /**
  * Initialize plugin
  */
@@ -40,6 +39,9 @@ function guided_journal_init()
 
     // Initialize settings
     $settings = new GuidedJournal\GuidedJournalSettings();
+
+    // Initialize sharing
+    $sharing = new GuidedJournal\GuidedJournalSharing();
 
     return $plugin;
 }
@@ -63,6 +65,10 @@ function guided_journal_activate()
     // Initialize roles
     $roles = new GuidedJournal\JournalRoles();
     $roles->create_journal_roles();
+
+    // Initialize sharing tables
+    $sharing = new GuidedJournal\GuidedJournalSharing();
+    $sharing->activate();
 
     // Set default options
     guided_journal_set_default_options();
@@ -118,6 +124,21 @@ function guided_journal_create_tables()
         KEY user_id (user_id)
     ) $charset_collate;";
 
+    // Share tokens table
+    $sql .= "CREATE TABLE IF NOT EXISTS {$wpdb->prefix}journal_share_tokens (
+        id bigint(20) NOT NULL AUTO_INCREMENT,
+        user_id bigint(20) NOT NULL,
+        entry_day int(11) NOT NULL,
+        token varchar(64) NOT NULL,
+        created_at datetime DEFAULT CURRENT_TIMESTAMP,
+        expires_at datetime NOT NULL,
+        views int(11) DEFAULT 0,
+        max_views int(11) DEFAULT NULL,
+        PRIMARY KEY (id),
+        UNIQUE KEY token (token),
+        KEY user_id (user_id)
+    ) $charset_collate;";
+
     require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
     dbDelta($sql);
 }
@@ -140,6 +161,8 @@ function guided_journal_set_default_options()
     add_option('guided_journal_autosave_interval', 120); // 2 minutes in seconds
     add_option('guided_journal_min_words', 0); // Minimum words per entry (0 = no minimum)
     add_option('guided_journal_show_stats', 1); // Show stats by default
+    add_option('guided_journal_share_expiry_hours', 24); // Default share link expiry
+    add_option('guided_journal_share_max_views', 3); // Default maximum views for shared entries
 }
 
 /**
@@ -150,6 +173,7 @@ function guided_journal_deactivate()
 {
     // Clear any scheduled events
     wp_clear_scheduled_hook('guided_journal_daily_maintenance');
+    wp_clear_scheduled_hook('guided_journal_cleanup_expired_shares');
 
     // Flush rewrite rules
     flush_rewrite_rules();
@@ -169,6 +193,7 @@ function guided_journal_uninstall()
         $wpdb->query("DROP TABLE IF EXISTS {$wpdb->prefix}journal_entries");
         $wpdb->query("DROP TABLE IF EXISTS {$wpdb->prefix}journal_stats");
         $wpdb->query("DROP TABLE IF EXISTS {$wpdb->prefix}journal_streaks");
+        $wpdb->query("DROP TABLE IF EXISTS {$wpdb->prefix}journal_share_tokens");
 
         // Remove all plugin options
         delete_option('guided_journal_version');
@@ -178,6 +203,8 @@ function guided_journal_uninstall()
         delete_option('guided_journal_min_words');
         delete_option('guided_journal_show_stats');
         delete_option('guided_journal_delete_data_on_uninstall');
+        delete_option('guided_journal_share_expiry_hours');
+        delete_option('guided_journal_share_max_views');
 
         // Remove all journal prompts
         $posts = get_posts([
@@ -235,6 +262,13 @@ function guided_journal_daily_maintenance()
         // Recalculate and update streak
         $stats->update_user_streak($user_id);
     }
+
+    // Clean up expired share tokens
+    $wpdb->query("
+        DELETE FROM {$wpdb->prefix}journal_share_tokens 
+        WHERE expires_at < NOW() 
+        OR (max_views IS NOT NULL AND views >= max_views)
+    ");
 }
 add_action('guided_journal_daily_maintenance', 'guided_journal_daily_maintenance');
 
