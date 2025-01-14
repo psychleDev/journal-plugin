@@ -353,9 +353,11 @@ class GuidedJournalSettings {
             </form>
 
             <!-- Demo Mode Section -->
+            <?php if (isset($this->demo_mode)): ?>
             <div class="settings-section">
                 <?php $this->demo_mode->render_demo_section(); ?>
             </div>
+            <?php endif; ?>
 
             <!-- Reset Options Section -->
             <div class="settings-section">
