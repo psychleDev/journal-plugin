@@ -439,3 +439,41 @@ body {
         width: 100%;
     }
 }
+
+.journal-notification {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    padding: 15px 25px;
+    border-radius: 4px;
+    color: #fff;
+    z-index: 10000;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    animation: slideIn 0.3s ease-out;
+}
+
+.journal-notification.error {
+    background-color: #dc3545;
+}
+
+.journal-notification.success {
+    background-color: #28a745;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateY(100%);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* Disable button styles */
+.export-entries:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}

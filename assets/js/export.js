@@ -1,18 +1,24 @@
 jQuery(document).ready(function ($) {
-    // Add export button after the "Back to Grid" link
-    $('.navigation-top').append(
-        '<button class="export-entries contents-toggle">' +
-        'Export Entries' +
-        '</button>'
-    );
+    // Add export button after the "Back to Grid" link if it doesn't exist
+    if ($('.export-entries').length === 0) {
+        $('.navigation-top').append(
+            '<button class="export-entries contents-toggle">' +
+            'Export Entries' +
+            '</button>'
+        );
+    }
 
     // Handle export button click
-    $('.export-entries').on('click', function () {
+    $('.export-entries').on('click', function (e) {
+        e.preventDefault();
         const $button = $(this);
         const originalText = $button.text();
-        const $notification = $('<div class="journal-notification"></div>').appendTo('body');
 
+        // Show loading state
         $button.text('Exporting...').prop('disabled', true);
+
+        // Remove any existing error messages
+        $('.journal-export-error').remove();
 
         $.ajax({
             url: journalAjax.ajaxurl,
@@ -25,26 +31,32 @@ jQuery(document).ready(function ($) {
                 responseType: 'blob'
             },
             success: function (response, status, xhr) {
-                // Get filename from Content-Disposition header
-                let filename = 'journal-entries.csv';
-                const disposition = xhr.getResponseHeader('Content-Disposition');
-                if (disposition && disposition.indexOf('filename') !== -1) {
-                    const matches = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/.exec(disposition);
-                    if (matches != null && matches[1]) {
-                        filename = matches[1].replace(/['"]/g, '');
-                    }
+                const contentType = xhr.getResponseHeader('content-type');
+
+                // Check if response is JSON (error message)
+                if (contentType.indexOf('application/json') > -1) {
+                    const reader = new FileReader();
+                    reader.onload = function () {
+                        try {
+                            const jsonResponse = JSON.parse(this.result);
+                            showError(jsonResponse.data.message || 'Export failed. Please try again.');
+                        } catch (e) {
+                            showError('Export failed. Please try again.');
+                        }
+                    };
+                    reader.readAsText(response);
+                    return;
                 }
 
-                // Create blob and download
+                // Handle successful CSV download
                 const blob = new Blob([response], {
                     type: 'text/csv;charset=utf-8;'
                 });
 
-                // Handle IE11 and Edge
-                if (navigator.msSaveBlob) {
-                    navigator.msSaveBlob(blob, filename);
-                    return;
-                }
+                // Get filename from header or use default
+                const filename = xhr.getResponseHeader('content-disposition')
+                    ? xhr.getResponseHeader('content-disposition').split('filename=')[1].replace(/"/g, '')
+                    : 'journal-entries.csv';
 
                 // Create download link
                 const url = window.URL.createObjectURL(blob);
@@ -56,40 +68,56 @@ jQuery(document).ready(function ($) {
                 document.body.removeChild(link);
                 window.URL.revokeObjectURL(url);
 
-                // Show success notification
-                showNotification($notification, 'Export completed successfully!', 'success');
+                // Show success message
+                showSuccess('Export completed successfully!');
             },
             error: function (xhr, status, error) {
-                let errorMessage = 'Failed to export entries. Please try again.';
+                console.error('Export error:', { xhr, status, error });
+                let errorMessage = 'Export failed. Please try again.';
+
                 try {
-                    const response = JSON.parse(xhr.responseText);
-                    if (response.data && response.data.message) {
-                        errorMessage = response.data.message;
+                    if (xhr.responseText) {
+                        const response = JSON.parse(xhr.responseText);
+                        if (response.data && response.data.message) {
+                            errorMessage = response.data.message;
+                        }
                     }
                 } catch (e) {
-                    console.error('Export error:', error);
+                    console.error('Error parsing error response:', e);
                 }
-                showNotification($notification, errorMessage, 'error');
+
+                showError(errorMessage);
             },
             complete: function () {
+                // Reset button state
                 $button.text(originalText).prop('disabled', false);
             }
         });
     });
 
-    // Helper function to show notifications
-    function showNotification($element, message, type) {
-        $element
-            .removeClass('success error')
-            .addClass(type)
-            .addClass('visible')
-            .text(message);
+    // Helper function to show error message
+    function showError(message) {
+        const $error = $('<div class="journal-notification error"></div>')
+            .text(message)
+            .appendTo('body');
 
         setTimeout(function () {
-            $element.removeClass('visible');
-            setTimeout(function () {
-                $element.remove();
-            }, 300);
+            $error.fadeOut(function () {
+                $(this).remove();
+            });
+        }, 5000);
+    }
+
+    // Helper function to show success message
+    function showSuccess(message) {
+        const $success = $('<div class="journal-notification success"></div>')
+            .text(message)
+            .appendTo('body');
+
+        setTimeout(function () {
+            $success.fadeOut(function () {
+                $(this).remove();
+            });
         }, 3000);
     }
 });
