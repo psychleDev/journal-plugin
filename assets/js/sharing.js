@@ -40,6 +40,7 @@ jQuery(document).ready(function ($) {
 
         if (!$shareLink.val()) {
             const currentDay = getCurrentDay();
+            console.debug('Share button clicked. Current day:', currentDay);
 
             // Generate share token
             $.ajax({
@@ -51,16 +52,20 @@ jQuery(document).ready(function ($) {
                     entry_day: currentDay,
                 },
                 success: function (response) {
+                    console.debug('AJAX success response:', response);
                     if (response.success) {
                         const shareUrl = `${window.location.origin}/shared-entry/${response.data.token}`;
                         $shareLink.val(shareUrl);
                         showNotification('success', 'Share link generated successfully.');
                     } else {
-                        showNotification('error', response.data?.message || 'Failed to generate share link.');
+                        const errorMessage = response.data?.message || 'Failed to generate share link.';
+                        console.error('Server returned error:', errorMessage);
+                        showNotification('error', errorMessage);
                     }
                 },
                 error: function (xhr) {
                     const errorMessage = parseAjaxError(xhr, 'Failed to generate share link.');
+                    console.error('AJAX error response:', xhr, errorMessage);
                     showNotification('error', errorMessage);
                 },
             });
@@ -79,41 +84,17 @@ jQuery(document).ready(function ($) {
             return;
         }
 
+        console.debug('Attempting to copy share link:', shareText);
+
         navigator.clipboard.writeText(shareText)
-            .then(() => updateCopyButton(true))
-            .catch(() => fallbackCopy($shareLink, this));
-    });
-
-    // Handle email share
-    $('.email-share').on('click', function () {
-        const shareUrl = $('.share-link').val();
-        if (!shareUrl) {
-            showNotification('error', 'Please wait for the share link to generate.');
-            return;
-        }
-
-        const subject = encodeURIComponent('Check out my journal entry');
-        const body = encodeURIComponent(`I wanted to share this journal entry with you:\n\n${shareUrl}`);
-        window.location.href = `mailto:?subject=${subject}&body=${body}`;
-    });
-
-    // Handle Twitter share
-    $('.twitter-share').on('click', function () {
-        const shareUrl = $('.share-link').val();
-        if (!shareUrl) {
-            showNotification('error', 'Please wait for the share link to generate.');
-            return;
-        }
-
-        const text = encodeURIComponent('Check out my journal entry:');
-        window.open(`https://twitter.com/intent/tweet?text=${text}&url=${encodeURIComponent(shareUrl)}`);
-    });
-
-    // Close popup when clicking outside
-    $(document).on('click', function (e) {
-        if (!$(e.target).closest('.share-button-container').length) {
-            $('.share-popup').slideUp(200);
-        }
+            .then(() => {
+                console.debug('Link copied to clipboard.');
+                updateCopyButton(true);
+            })
+            .catch(() => {
+                console.error('Clipboard copy failed. Attempting fallback.');
+                fallbackCopy($shareLink, this);
+            });
     });
 
     // Helper function to parse AJAX error
@@ -129,11 +110,49 @@ jQuery(document).ready(function ($) {
         return defaultMessage;
     }
 
+    // Handle email share
+    $('.email-share').on('click', function () {
+        const shareUrl = $('.share-link').val();
+        if (!shareUrl) {
+            showNotification('error', 'Please wait for the share link to generate.');
+            return;
+        }
+
+        console.debug('Preparing email share with link:', shareUrl);
+
+        const subject = encodeURIComponent('Check out my journal entry');
+        const body = encodeURIComponent(`I wanted to share this journal entry with you:\n\n${shareUrl}`);
+        window.location.href = `mailto:?subject=${subject}&body=${body}`;
+    });
+
+    // Handle Twitter share
+    $('.twitter-share').on('click', function () {
+        const shareUrl = $('.share-link').val();
+        if (!shareUrl) {
+            showNotification('error', 'Please wait for the share link to generate.');
+            return;
+        }
+
+        console.debug('Preparing Twitter share with link:', shareUrl);
+
+        const text = encodeURIComponent('Check out my journal entry:');
+        window.open(`https://twitter.com/intent/tweet?text=${text}&url=${encodeURIComponent(shareUrl)}`);
+    });
+
+    // Close popup when clicking outside
+    $(document).on('click', function (e) {
+        if (!$(e.target).closest('.share-button-container').length) {
+            $('.share-popup').slideUp(200);
+        }
+    });
+
     // Helper function to get current day from URL
     function getCurrentDay() {
         const path = window.location.pathname;
         const matches = path.match(/\/journal-prompts\/(\d+)/);
-        return matches && matches[1] ? parseInt(matches[1]) : 1;
+        const day = matches && matches[1] ? parseInt(matches[1]) : 1;
+        console.debug('Extracted current day from URL:', day);
+        return day;
     }
 
     // Helper function for fallback copy mechanism
@@ -142,7 +161,9 @@ jQuery(document).ready(function ($) {
             $shareLink[0].select();
             document.execCommand('copy');
             updateCopyButton(true);
+            console.debug('Fallback copy to clipboard succeeded.');
         } catch (err) {
+            console.error('Fallback copy failed:', err);
             updateCopyButton(false);
             showNotification('error', 'Failed to copy to clipboard.');
         }
@@ -154,8 +175,10 @@ jQuery(document).ready(function ($) {
         const originalContent = '<span class="dashicons dashicons-clipboard"></span> Copy';
 
         if (success) {
+            console.debug('Copy button updated to "Copied!" state.');
             $button.html('<span class="dashicons dashicons-yes"></span> Copied!');
         } else {
+            console.debug('Copy button updated to "Failed" state.');
             $button.html('<span class="dashicons dashicons-no"></span> Failed');
         }
 
@@ -166,6 +189,8 @@ jQuery(document).ready(function ($) {
 
     // Helper function to show notifications
     function showNotification(type, message) {
+        console.debug('Showing notification:', type, message);
+
         const $notification = $(`<div class="journal-notification ${type}"></div>`)
             .text(message)
             .appendTo('body');
