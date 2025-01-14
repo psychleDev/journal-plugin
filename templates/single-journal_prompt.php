@@ -56,10 +56,6 @@ get_header();
                                 ?>
 
                                 <div class="navigation">
-                                    <?php
-                                    $current_day = intval(get_the_title());
-                                    $total_prompts = wp_count_posts('journal_prompt')->publish;
-                                    ?>
                                     <button class="prev-day" <?php echo ($current_day <= 1) ? 'disabled' : ''; ?>>
                                         <?php _e('Previous Day', 'guided-journal'); ?>
                                     </button>
@@ -72,7 +68,7 @@ get_header();
                                         <?php _e('Next Day', 'guided-journal'); ?>
                                     </button>
 
-                                    <div id="share-button-container"></div>
+                                    <div class="share-button-container"></div> <!-- Changed from id to class -->
                                 </div>
 
                                 <div class="save-status">
