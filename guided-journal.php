@@ -1,9 +1,9 @@
 <?php
 /**
- * Plugin Name: Guided Journal
+ * Plugin Name: Universal Guided Journal
  * Description: A customizable guided journal system for WordPress with writing stats and progress tracking
  * Version: 2.0
- * Author: Your Name
+ * Author: Steadfast Creative Solutions LLC.
  * Text Domain: guided-journal
  */
 
