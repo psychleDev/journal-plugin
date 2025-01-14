@@ -87,29 +87,35 @@ class GuidedJournalSharing
         $expiry_hours = isset($_POST['expiry_hours']) ? intval($_POST['expiry_hours']) : 24;
         $max_views = isset($_POST['max_views']) ? intval($_POST['max_views']) : 3;
 
-        // Generate unique token
-        $token = wp_generate_password(32, false);
+        try {
+            // Generate unique token
+            $token = wp_generate_password(32, false);
 
-        // Calculate expiry
-        $expires_at = date('Y-m-d H:i:s', strtotime("+{$expiry_hours} hours"));
+            // Calculate expiry
+            $expires_at = date('Y-m-d H:i:s', strtotime("+{$expiry_hours} hours"));
 
-        $result = $this->wpdb->insert(
-            $this->table_name,
-            [
-                'user_id' => get_current_user_id(),
-                'entry_day' => $entry_day,
-                'token' => $token,
-                'expires_at' => $expires_at,
-                'max_views' => $max_views
-            ],
-            ['%d', '%d', '%s', '%s', '%d']
-        );
+            $result = $this->wpdb->insert(
+                $this->table_name,
+                [
+                    'user_id' => get_current_user_id(),
+                    'entry_day' => $entry_day,
+                    'token' => $token,
+                    'expires_at' => $expires_at,
+                    'max_views' => $max_views
+                ],
+                ['%d', '%d', '%s', '%s', '%d']
+            );
 
-        if ($result === false) {
+            if ($result === false) {
+                wp_send_json_error(['message' => __('Failed to generate share link', 'guided-journal')]);
+            }
+
+            wp_send_json_success(['token' => $token]);
+        } catch (Exception $e) {
+            error_log('Share Token Generation Error: ' . $e->getMessage());
+            error_log('Share Token Generation Error: ' . $e->getTraceAsString());
             wp_send_json_error(['message' => __('Failed to generate share link', 'guided-journal')]);
         }
-
-        wp_send_json_success(['token' => $token]);
     }
 
     public function handle_shared_entry($template)
