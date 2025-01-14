@@ -9,13 +9,9 @@ jQuery(document).ready(function ($) {
         const $button = $(this);
         const originalText = $button.text();
 
-        // Verify nonce is available
-        console.log('Checking journalAjax:', journalAjax);
-        if (!journalAjax || !journalAjax.nonce) {
-            console.error('journalAjax or nonce not found');
-            showError('Configuration error. Please refresh the page.');
-            return;
-        }
+        // Get current protocol
+        const protocol = window.location.protocol;
+        const ajaxUrl = journalAjax.ajaxurl.replace(/^http:/, protocol);
 
         // Show loading state
         $button.text('Exporting...').prop('disabled', true);
@@ -24,7 +20,7 @@ jQuery(document).ready(function ($) {
         $('.journal-notification').remove();
 
         $.ajax({
-            url: journalAjax.ajaxurl,
+            url: ajaxUrl,
             type: 'POST',
             data: {
                 action: 'export_journal_entries',
@@ -54,30 +50,35 @@ jQuery(document).ready(function ($) {
                     return;
                 }
 
-                // Handle successful CSV download
-                const blob = new Blob([response], {
-                    type: 'text/csv;charset=utf-8;'
-                });
+                try {
+                    // Handle successful CSV download
+                    const blob = new Blob([response], {
+                        type: 'text/csv;charset=utf-8;'
+                    });
 
-                // Get filename from header or use default
-                const filename = xhr.getResponseHeader('content-disposition')
-                    ? xhr.getResponseHeader('content-disposition').split('filename=')[1].replace(/"/g, '')
-                    : 'journal-entries.csv';
+                    // Get filename from header or use default
+                    const filename = xhr.getResponseHeader('content-disposition')
+                        ? xhr.getResponseHeader('content-disposition').split('filename=')[1].replace(/"/g, '')
+                        : 'journal-entries.csv';
 
-                console.log('Creating download with filename:', filename);
+                    console.log('Creating download with filename:', filename);
 
-                // Create download link
-                const url = window.URL.createObjectURL(blob);
-                const link = document.createElement('a');
-                link.href = url;
-                link.download = filename;
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                window.URL.revokeObjectURL(url);
+                    // Create download link
+                    const url = window.URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = filename;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    window.URL.revokeObjectURL(url);
 
-                // Show success message
-                showSuccess('Export completed successfully!');
+                    // Show success message
+                    showSuccess('Export completed successfully!');
+                } catch (error) {
+                    console.error('Error creating download:', error);
+                    showError('Failed to create download. Please try again.');
+                }
             },
             error: function (xhr, status, error) {
                 console.error('Export ajax error:', { xhr, status, error });
