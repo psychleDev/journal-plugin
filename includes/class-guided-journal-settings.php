@@ -34,10 +34,6 @@ class GuidedJournalSettings {
     ];
 
     public function __construct() {
-        // Initialize Demo Mode
-        require_once GUIDED_JOURNAL_PLUGIN_DIR . 'includes/class-guided-journal-demo-mode.php';
-        $this->demo_mode = new GuidedJournalDemoMode();
-
         add_action('admin_menu', [$this, 'add_settings_page']);
         add_action('admin_init', [$this, 'register_settings']);
         add_action('wp_head', [$this, 'output_custom_styles']);
@@ -46,6 +42,15 @@ class GuidedJournalSettings {
         add_action('admin_post_reset_journal_prompts', [$this, 'reset_journal_prompts']);
         add_action('admin_post_reset_journal_entries', [$this, 'reset_journal_entries']);
         add_action('admin_notices', [$this, 'display_reset_notices']);
+
+        // Initialize Demo Mode
+        $demo_mode_file = GUIDED_JOURNAL_PLUGIN_DIR . 'includes/class-guided-journal-demo-mode.php';
+        if (file_exists($demo_mode_file)) {
+            require_once $demo_mode_file;
+            if (class_exists('GuidedJournal\\GuidedJournalDemoMode')) {
+                $this->demo_mode = new GuidedJournalDemoMode();
+            }
+        }
     }
 
     public function add_settings_page() {
