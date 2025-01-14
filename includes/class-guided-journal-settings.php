@@ -3,6 +3,7 @@ namespace GuidedJournal;
 
 class GuidedJournalSettings {
     private $options;
+    private $demo_mode;
     private $default_colors = [
         'background' => '#333333',
         'card_background' => '#1b1b1b',
@@ -33,6 +34,10 @@ class GuidedJournalSettings {
     ];
 
     public function __construct() {
+        // Initialize Demo Mode
+        require_once GUIDED_JOURNAL_PLUGIN_DIR . 'includes/class-guided-journal-demo-mode.php';
+        $this->demo_mode = new GuidedJournalDemoMode();
+
         add_action('admin_menu', [$this, 'add_settings_page']);
         add_action('admin_init', [$this, 'register_settings']);
         add_action('wp_head', [$this, 'output_custom_styles']);
@@ -77,6 +82,13 @@ class GuidedJournalSettings {
             'type' => 'array',
             'default' => $this->default_fonts,
             'sanitize_callback' => [$this, 'sanitize_fonts']
+        ]);
+
+        // Register Demo Mode settings
+        register_setting('guided_journal_settings', 'guided_journal_demo_installed', [
+            'type' => 'boolean',
+            'default' => false,
+            'sanitize_callback' => 'rest_sanitize_boolean'
         ]);
     }
 
@@ -334,6 +346,11 @@ class GuidedJournalSettings {
 
                 <?php submit_button('Save Settings'); ?>
             </form>
+
+            <!-- Demo Mode Section -->
+            <div class="settings-section">
+                <?php $this->demo_mode->render_demo_section(); ?>
+            </div>
 
             <!-- Reset Options Section -->
             <div class="settings-section">
