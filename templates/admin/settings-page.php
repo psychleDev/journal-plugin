@@ -16,105 +16,170 @@ if (!defined('ABSPATH')) {
             <!-- Theme Colors -->
             <h3>Theme Colors</h3>
             <table class="form-table">
-                <?php
-                $theme_colors = [
-                    'background' => __('Background', 'guided-journal'),
-                    'card_background' => __('Card Background', 'guided-journal'),
-                    'text' => __('Text', 'guided-journal'),
-                    'accent' => __('Accent', 'guided-journal'),
-                    'container_background' => __('Container Background', 'guided-journal'),
-                    'completed' => __('Completed State', 'guided-journal')
-                ];
-
-                foreach ($theme_colors as $key => $label) {
-                    ?>
-                    <tr>
-                        <th scope="row"><?php echo esc_html($label); ?></th>
-                        <td>
-                            <div class="color-setting">
-                                <input type="color" 
-                                       name="guided_journal_colors[<?php echo esc_attr($key); ?>]" 
-                                       value="<?php echo esc_attr($colors[$key]); ?>">
-                                <input type="text" 
-                                       class="color-hex" 
-                                       value="<?php echo esc_attr($colors[$key]); ?>">
-                                <button type="button" class="button reset-color" 
-                                        data-default="<?php echo esc_attr($this->default_colors[$key]); ?>">
-                                    <?php _e('Reset', 'guided-journal'); ?>
-                                </button>
-                            </div>
-                        </td>
-                    </tr>
-                    <?php
-                }
-                ?>
+                <tr>
+                    <th scope="row">Background</th>
+                    <td>
+                        <div class="color-setting">
+                            <input type="color" 
+                                   name="guided_journal_colors[background]" 
+                                   value="<?php echo esc_attr($colors['background']); ?>">
+                            <input type="text" 
+                                   class="color-hex" 
+                                   value="<?php echo esc_attr($colors['background']); ?>">
+                            <button type="button" class="button reset-color">Reset</button>
+                        </div>
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row">Card Background</th>
+                    <td>
+                        <div class="color-setting">
+                            <input type="color" 
+                                   name="guided_journal_colors[card_background]" 
+                                   value="<?php echo esc_attr($colors['card_background']); ?>">
+                            <input type="text" 
+                                   class="color-hex" 
+                                   value="<?php echo esc_attr($colors['card_background']); ?>">
+                            <button type="button" class="button reset-color">Reset</button>
+                        </div>
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row">Text</th>
+                    <td>
+                        <div class="color-setting">
+                            <input type="color" 
+                                   name="guided_journal_colors[text]" 
+                                   value="<?php echo esc_attr($colors['text']); ?>">
+                            <input type="text" 
+                                   class="color-hex" 
+                                   value="<?php echo esc_attr($colors['text']); ?>">
+                            <button type="button" class="button reset-color">Reset</button>
+                        </div>
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row">Accent</th>
+                    <td>
+                        <div class="color-setting">
+                            <input type="color" 
+                                   name="guided_journal_colors[accent]" 
+                                   value="<?php echo esc_attr($colors['accent']); ?>">
+                            <input type="text" 
+                                   class="color-hex" 
+                                   value="<?php echo esc_attr($colors['accent']); ?>">
+                            <button type="button" class="button reset-color">Reset</button>
+                        </div>
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row">Container Background</th>
+                    <td>
+                        <div class="color-setting">
+                            <input type="color" 
+                                   name="guided_journal_colors[container_background]" 
+                                   value="<?php echo esc_attr($colors['container_background']); ?>">
+                            <input type="text" 
+                                   class="color-hex" 
+                                   value="<?php echo esc_attr($colors['container_background']); ?>">
+                            <button type="button" class="button reset-color">Reset</button>
+                        </div>
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row">Completed State</th>
+                    <td>
+                        <div class="color-setting">
+                            <input type="color" 
+                                   name="guided_journal_colors[completed]" 
+                                   value="<?php echo esc_attr($colors['completed']); ?>">
+                            <input type="text" 
+                                   class="color-hex" 
+                                   value="<?php echo esc_attr($colors['completed']); ?>">
+                            <button type="button" class="button reset-color">Reset</button>
+                        </div>
+                    </td>
+                </tr>
             </table>
 
             <!-- Button Colors -->
             <h3>Button Colors</h3>
             <table class="form-table">
-                <?php
-                $button_colors = [
-                    'button_background' => __('Button Background', 'guided-journal'),
-                    'button_text' => __('Button Text', 'guided-journal'),
-                    'button_hover' => __('Button Hover', 'guided-journal')
-                ];
-
-                foreach ($button_colors as $key => $label) {
-                    ?>
-                    <tr>
-                        <th scope="row"><?php echo esc_html($label); ?></th>
-                        <td>
-                            <div class="color-setting">
-                                <input type="color" 
-                                       name="guided_journal_colors[<?php echo esc_attr($key); ?>]" 
-                                       value="<?php echo esc_attr($colors[$key]); ?>">
-                                <input type="text" 
-                                       class="color-hex" 
-                                       value="<?php echo esc_attr($colors[$key]); ?>">
-                                <button type="button" class="button reset-color" 
-                                        data-default="<?php echo esc_attr($this->default_colors[$key]); ?>">
-                                    <?php _e('Reset', 'guided-journal'); ?>
-                                </button>
-                            </div>
-                        </td>
-                    </tr>
-                    <?php
-                }
-                ?>
+                <tr>
+                    <th scope="row">Button Background</th>
+                    <td>
+                        <div class="color-setting">
+                            <input type="color" 
+                                   name="guided_journal_colors[button_background]" 
+                                   value="<?php echo esc_attr($colors['button_background']); ?>">
+                            <input type="text" 
+                                   class="color-hex" 
+                                   value="<?php echo esc_attr($colors['button_background']); ?>">
+                            <button type="button" class="button reset-color">Reset</button>
+                        </div>
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row">Button Text</th>
+                    <td>
+                        <div class="color-setting">
+                            <input type="color" 
+                                   name="guided_journal_colors[button_text]" 
+                                   value="<?php echo esc_attr($colors['button_text']); ?>">
+                            <input type="text" 
+                                   class="color-hex" 
+                                   value="<?php echo esc_attr($colors['button_text']); ?>">
+                            <button type="button" class="button reset-color">Reset</button>
+                        </div>
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row">Button Hover</th>
+                    <td>
+                        <div class="color-setting">
+                            <input type="color" 
+                                   name="guided_journal_colors[button_hover]" 
+                                   value="<?php echo esc_attr($colors['button_hover']); ?>">
+                            <input type="text" 
+                                   class="color-hex" 
+                                   value="<?php echo esc_attr($colors['button_hover']); ?>">
+                            <button type="button" class="button reset-color">Reset</button>
+                        </div>
+                    </td>
+                </tr>
             </table>
 
             <!-- Progress Bar Colors -->
             <h3>Progress Bar Colors</h3>
             <table class="form-table">
-                <?php
-                $progress_colors = [
-                    'progress_bar_background' => __('Progress Bar Background', 'guided-journal'),
-                    'progress_bar_fill' => __('Progress Bar Fill', 'guided-journal')
-                ];
-
-                foreach ($progress_colors as $key => $label) {
-                    ?>
-                    <tr>
-                        <th scope="row"><?php echo esc_html($label); ?></th>
-                        <td>
-                            <div class="color-setting">
-                                <input type="color" 
-                                       name="guided_journal_colors[<?php echo esc_attr($key); ?>]" 
-                                       value="<?php echo esc_attr($colors[$key]); ?>">
-                                <input type="text" 
-                                       class="color-hex" 
-                                       value="<?php echo esc_attr($colors[$key]); ?>">
-                                <button type="button" class="button reset-color" 
-                                        data-default="<?php echo esc_attr($this->default_colors[$key]); ?>">
-                                    <?php _e('Reset', 'guided-journal'); ?>
-                                </button>
-                            </div>
-                        </td>
-                    </tr>
-                    <?php
-                }
-                ?>
+                <tr>
+                    <th scope="row">Progress Bar Background</th>
+                    <td>
+                        <div class="color-setting">
+                            <input type="color" 
+                                   name="guided_journal_colors[progress_bar_background]" 
+                                   value="<?php echo esc_attr($colors['progress_bar_background']); ?>">
+                            <input type="text" 
+                                   class="color-hex" 
+                                   value="<?php echo esc_attr($colors['progress_bar_background']); ?>">
+                            <button type="button" class="button reset-color">Reset</button>
+                        </div>
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row">Progress Bar Fill</th>
+                    <td>
+                        <div class="color-setting">
+                            <input type="color" 
+                                   name="guided_journal_colors[progress_bar_fill]" 
+                                   value="<?php echo esc_attr($colors['progress_bar_fill']); ?>">
+                            <input type="text" 
+                                   class="color-hex" 
+                                   value="<?php echo esc_attr($colors['progress_bar_fill']); ?>">
+                            <button type="button" class="button reset-color">Reset</button>
+                        </div>
+                    </td>
+                </tr>
             </table>
         </div>
 
@@ -194,18 +259,18 @@ if (!defined('ABSPATH')) {
         <p class="description"><?php _e('Use these options with caution. These actions cannot be undone.', 'guided-journal'); ?></p>
 
         <div class="reset-options">
-            <form action="<?php echo admin_url('admin-post.php'); ?>" method="post" style="display: inline-block; margin-right: 20px;">
+            <form action="<?php echo esc_url(admin_url('admin-post.php')); ?>" method="post" style="display: inline-block; margin-right: 20px;">
                 <?php wp_nonce_field('reset_journal_prompts_nonce', 'reset_prompts_nonce'); ?>
                 <input type="hidden" name="action" value="reset_journal_prompts">
-                <input type="submit" class="button button-secondary" value="<?php _e('Reset All Prompts', 'guided-journal'); ?>"
-                    onclick="return confirm('<?php _e('Are you sure you want to delete all journal prompts? This action cannot be undone.', 'guided-journal'); ?>');">
+                <input type="submit" class="button button-secondary" value="<?php esc_attr_e('Reset All Prompts', 'guided-journal'); ?>"
+                    onclick="return confirm('<?php esc_attr_e('Are you sure you want to delete all journal prompts? This action cannot be undone.', 'guided-journal'); ?>');">
             </form>
 
-            <form action="<?php echo admin_url('admin-post.php'); ?>" method="post" style="display: inline-block;">
+            <form action="<?php echo esc_url(admin_url('admin-post.php')); ?>" method="post" style="display: inline-block;">
                 <?php wp_nonce_field('reset_journal_entries_nonce', 'reset_entries_nonce'); ?>
                 <input type="hidden" name="action" value="reset_journal_entries">
-                <input type="submit" class="button button-secondary" value="<?php _e('Reset All Journal Entries', 'guided-journal'); ?>"
-                    onclick="return confirm('<?php _e('Are you sure you want to delete all journal entries? This action cannot be undone.', 'guided-journal'); ?>');">
+                <input type="submit" class="button button-secondary" value="<?php esc_attr_e('Reset All Journal Entries', 'guided-journal'); ?>"
+                    onclick="return confirm('<?php esc_attr_e('Are you sure you want to delete all journal entries? This action cannot be undone.', 'guided-journal'); ?>');">
             </form>
         </div>
     </div>
