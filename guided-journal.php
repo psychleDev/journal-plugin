@@ -10,6 +10,17 @@
 // Prevent direct access
 defined('ABSPATH') || exit;
 
+// Add this near the top of guided-journal.php after the plugin header
+if (!defined('GUIDED_JOURNAL_PLUGIN_URL')) {
+    define('GUIDED_JOURNAL_PLUGIN_URL', plugins_url('', __FILE__));
+    error_log('GUIDED_JOURNAL_PLUGIN_URL set to: ' . GUIDED_JOURNAL_PLUGIN_URL);
+}
+
+if (!defined('GUIDED_JOURNAL_PLUGIN_DIR')) {
+    define('GUIDED_JOURNAL_PLUGIN_DIR', plugin_dir_path(__FILE__));
+    error_log('GUIDED_JOURNAL_PLUGIN_DIR set to: ' . GUIDED_JOURNAL_PLUGIN_DIR);
+}
+
 // Define plugin constants
 define('GUIDED_JOURNAL_VERSION', '2.0.0');
 define('GUIDED_JOURNAL_PLUGIN_DIR', plugin_dir_path(__FILE__));
