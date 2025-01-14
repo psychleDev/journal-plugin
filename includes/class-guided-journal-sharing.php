@@ -77,22 +77,34 @@ class GuidedJournalSharing
 
     public function generate_share_token()
     {
-        check_ajax_referer('journal_share_nonce', 'nonce');
+        // Check nonce
+        if (!check_ajax_referer('journal_share_nonce', 'nonce', false)) {
+            error_log('Nonce validation failed for AJAX request.');
+            wp_send_json_error(['message' => __('Invalid nonce', 'guided-journal')]);
+        }
 
+        // Check user login status
         if (!is_user_logged_in()) {
+            error_log('Unauthorized user attempted to generate share token.');
             wp_send_json_error(['message' => __('Not authorized', 'guided-journal')]);
         }
 
+        // Validate entry day
         $entry_day = intval($_POST['entry_day']);
-        $expiry_hours = isset($_POST['expiry_hours']) ? intval($_POST['expiry_hours']) : 24;
-        $max_views = isset($_POST['max_views']) ? intval($_POST['max_views']) : 3;
+        if (!$entry_day) {
+            error_log('Invalid entry_day provided in AJAX request: ' . print_r($_POST, true));
+            wp_send_json_error(['message' => __('Invalid entry day', 'guided-journal')]);
+        }
 
-        // Generate unique token
+        // Generate token
         $token = wp_generate_password(32, false);
 
         // Calculate expiry
+        $expiry_hours = isset($_POST['expiry_hours']) ? intval($_POST['expiry_hours']) : 24;
         $expires_at = date('Y-m-d H:i:s', strtotime("+{$expiry_hours} hours"));
+        $max_views = isset($_POST['max_views']) ? intval($_POST['max_views']) : 3;
 
+        // Insert token into database
         $result = $this->wpdb->insert(
             $this->table_name,
             [
@@ -106,11 +118,13 @@ class GuidedJournalSharing
         );
 
         if ($result === false) {
+            error_log('Database insert failed for token generation: ' . $this->wpdb->last_error);
             wp_send_json_error(['message' => __('Failed to generate share link', 'guided-journal')]);
         }
 
         wp_send_json_success(['token' => $token]);
     }
+
 
     public function handle_shared_entry($template)
     {
