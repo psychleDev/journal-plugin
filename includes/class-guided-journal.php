@@ -21,6 +21,7 @@ class GuidedJournal {
         add_action('wp_ajax_save_journal_entry', [$this, 'save_entry']);
         add_action('wp_ajax_get_journal_entries', [$this, 'get_entries']);
         add_action('wp_ajax_export_journal_entries', [$this, 'export_entries']);
+        add_action('wp_ajax_generate_share_token', [$this, 'generate_share_token']);
 
         // Basic access control - must be logged in
         add_action('template_redirect', function() {
@@ -567,6 +568,52 @@ class GuidedJournal {
                 'message' => $e->getMessage(),
                 'code' => $e->getCode()
             ));
+        }
+    }
+    public function generate_share_token() {
+        check_ajax_referer('journal_share_nonce', 'nonce');
+    
+        if (!is_user_logged_in()) {
+            wp_send_json_error(['message' => __('Not authorized', 'guided-journal')]);
+            return;
+        }
+    
+        $entry_day = intval($_POST['entry_day']);
+        $expiry_hours = isset($_POST['expiry_hours']) ? intval($_POST['expiry_hours']) : 24;
+        $max_views = isset($_POST['max_views']) ? intval($_POST['max_views']) : 3;
+    
+        global $wpdb;
+        $token = wp_generate_password(32, false);
+        $expires_at = date('Y-m-d H:i:s', strtotime("+{$expiry_hours} hours"));
+    
+        $result = $wpdb->insert(
+            $wpdb->prefix . 'journal_share_tokens',
+            [
+                'user_id' => get_current_user_id(),
+                'entry_day' => $entry_day,
+                'token' => $token,
+                'expires_at' => $expires_at,
+                'max_views' => $max_views
+            ],
+            ['%d', '%d', '%s', '%s', '%d']
+        );
+    
+        if ($result === false) {
+            wp_send_json_error(['message' => __('Failed to generate share link', 'guided-journal')]);
+        }
+    
+        wp_send_json_success(['token' => $token]);
+    }
+    
+    public function enqueue_export_script() {
+        if (is_singular('journal_prompt') || strpos($_SERVER['REQUEST_URI'], '/grid') !== false) {
+            wp_enqueue_script(
+                'guided-journal-export',
+                GUIDED_JOURNAL_PLUGIN_URL . 'assets/js/export.js',
+                ['jquery'],
+                GUIDED_JOURNAL_VERSION,
+                true
+            );
         }
     }
 }
