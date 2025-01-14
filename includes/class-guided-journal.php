@@ -458,72 +458,98 @@ class GuidedJournal {
     }
 
     public function export_entries() {
-        // Verify nonce
-        if (!check_ajax_referer('journal_nonce', 'nonce', false)) {
-            wp_send_json_error(array('message' => __('Invalid security token', 'guided-journal')));
-        }
-
-        // Check user is logged in
-        if (!is_user_logged_in()) {
-            wp_send_json_error(array('message' => __('Please log in to export entries', 'guided-journal')));
-        }
-
-        $user_id = get_current_user_id();
-        global $wpdb;
-
-        // Get user's entries with prompts
-        $entries = $wpdb->get_results($wpdb->prepare(
-            "SELECT je.day_number, je.entry_text, je.created_at, jp.post_content as prompt 
-             FROM {$wpdb->prefix}journal_entries je 
-             LEFT JOIN {$wpdb->posts} jp ON jp.post_title = CAST(je.day_number AS CHAR) 
-             WHERE je.user_id = %d 
-             AND jp.post_type = 'journal_prompt'
-             ORDER BY je.day_number ASC",
-            $user_id
-        ));
-
-        if (empty($entries)) {
-            wp_send_json_error(array('message' => __('No entries found to export', 'guided-journal')));
-        }
-
-        // Generate unique filename
-        $user = wp_get_current_user();
-        $filename = sanitize_file_name('journal-entries-' . $user->user_login . '-' . date('Y-m-d') . '.csv');
-
-        // Set headers for CSV download
-        header('Content-Type: text/csv; charset=utf-8');
-        header('Content-Disposition: attachment; filename="' . $filename . '"');
-        header('Pragma: no-cache');
-        header('Expires: 0');
-
-        // Create output stream
-        $output = fopen('php://output', 'w');
-
-        // Add UTF-8 BOM for Excel compatibility
-        fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF));
-
-        // Add CSV headers
-        fputcsv($output, array(
-            __('Day', 'guided-journal'),
-            __('Prompt', 'guided-journal'),
-            __('Entry', 'guided-journal'),
-            __('Date Written', 'guided-journal')
-        ));
-
-        // Add entries
-        foreach ($entries as $entry) {
-            $clean_entry = wp_strip_all_tags($entry->entry_text);
-            $clean_prompt = wp_strip_all_tags($entry->prompt);
+        try {
+            // Verify nonce and user authentication
+            if (!check_ajax_referer('journal_nonce', 'nonce', false)) {
+                throw new \Exception(__('Invalid security token', 'guided-journal'));
+            }
+    
+            if (!is_user_logged_in()) {
+                throw new \Exception(__('Please log in to export entries', 'guided-journal'));
+            }
+    
+            $user_id = get_current_user_id();
             
-            fputcsv($output, array(
-                $entry->day_number,
-                $clean_prompt,
-                $clean_entry,
-                get_date_from_gmt($entry->created_at, get_option('date_format') . ' ' . get_option('time_format'))
+            // Get user's entries with prompts
+            $entries = $this->wpdb->get_results($this->wpdb->prepare(
+                "SELECT 
+                    je.day_number,
+                    je.entry_text,
+                    je.created_at,
+                    jp.post_content as prompt,
+                    js.word_count
+                 FROM {$this->wpdb->prefix}journal_entries je 
+                 LEFT JOIN {$this->wpdb->posts} jp 
+                    ON jp.post_title = CAST(je.day_number AS CHAR) 
+                    AND jp.post_type = 'journal_prompt'
+                 LEFT JOIN {$this->wpdb->prefix}journal_stats js
+                    ON js.user_id = je.user_id 
+                    AND js.day_number = je.day_number
+                 WHERE je.user_id = %d 
+                 ORDER BY je.day_number ASC",
+                $user_id
+            ));
+    
+            if (empty($entries)) {
+                throw new \Exception(__('No entries found to export', 'guided-journal'));
+            }
+    
+            // Create temporary file
+            $temp_file = tmpfile();
+            $csv_data = fopen('php://temp', 'r+');
+    
+            // Add UTF-8 BOM for Excel compatibility
+            fputs($csv_data, "\xEF\xBB\xBF");
+    
+            // Write headers
+            fputcsv($csv_data, array(
+                __('Day', 'guided-journal'),
+                __('Prompt', 'guided-journal'),
+                __('Entry', 'guided-journal'),
+                __('Word Count', 'guided-journal'),
+                __('Date Written', 'guided-journal')
+            ));
+    
+            // Write entries
+            foreach ($entries as $entry) {
+                $row = array(
+                    $entry->day_number,
+                    wp_strip_all_tags($entry->prompt),
+                    wp_strip_all_tags($entry->entry_text),
+                    $entry->word_count ?? 0,
+                    get_date_from_gmt($entry->created_at, 'Y-m-d H:i:s')
+                );
+                fputcsv($csv_data, $row);
+            }
+    
+            // Get file contents
+            rewind($csv_data);
+            $csv_content = stream_get_contents($csv_data);
+            fclose($csv_data);
+    
+            // Generate filename
+            $user = wp_get_current_user();
+            $filename = sanitize_file_name(sprintf(
+                'journal-entries-%s-%s.csv',
+                sanitize_user($user->user_login, true),
+                current_time('Y-m-d')
+            ));
+    
+            // Send headers
+            nocache_headers();
+            header('Content-Type: text/csv; charset=utf-8');
+            header('Content-Disposition: attachment; filename="' . $filename . '"');
+            header('Pragma: public');
+            header('Expires: 0');
+            
+            // Output file content and exit
+            echo $csv_content;
+            exit;
+    
+        } catch (\Exception $e) {
+            wp_send_json_error(array(
+                'message' => $e->getMessage()
             ));
         }
-
-        fclose($output);
-        wp_die();
     }
 }

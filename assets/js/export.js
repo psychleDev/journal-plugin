@@ -10,6 +10,7 @@ jQuery(document).ready(function ($) {
     $('.export-entries').on('click', function () {
         const $button = $(this);
         const originalText = $button.text();
+        const $notification = $('<div class="journal-notification"></div>').appendTo('body');
 
         $button.text('Exporting...').prop('disabled', true);
 
@@ -24,27 +25,71 @@ jQuery(document).ready(function ($) {
                 responseType: 'blob'
             },
             success: function (response, status, xhr) {
+                // Get filename from Content-Disposition header
+                let filename = 'journal-entries.csv';
+                const disposition = xhr.getResponseHeader('Content-Disposition');
+                if (disposition && disposition.indexOf('filename') !== -1) {
+                    const matches = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/.exec(disposition);
+                    if (matches != null && matches[1]) {
+                        filename = matches[1].replace(/['"]/g, '');
+                    }
+                }
+
+                // Create blob and download
+                const blob = new Blob([response], {
+                    type: 'text/csv;charset=utf-8;'
+                });
+
+                // Handle IE11 and Edge
+                if (navigator.msSaveBlob) {
+                    navigator.msSaveBlob(blob, filename);
+                    return;
+                }
+
                 // Create download link
-                const blob = new Blob([response], { type: 'text/csv' });
-                const downloadUrl = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
+                const url = window.URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = filename;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                window.URL.revokeObjectURL(url);
 
-                // Get filename from header if present, otherwise use default
-                const filename = xhr.getResponseHeader('Content-Disposition')?.split('filename=')[1] || 'journal-entries.csv';
-
-                a.href = downloadUrl;
-                a.download = filename;
-                document.body.appendChild(a);
-                a.click();
-                window.URL.revokeObjectURL(downloadUrl);
-                document.body.removeChild(a);
+                // Show success notification
+                showNotification($notification, 'Export completed successfully!', 'success');
             },
-            error: function () {
-                alert('Failed to export entries. Please try again.');
+            error: function (xhr, status, error) {
+                let errorMessage = 'Failed to export entries. Please try again.';
+                try {
+                    const response = JSON.parse(xhr.responseText);
+                    if (response.data && response.data.message) {
+                        errorMessage = response.data.message;
+                    }
+                } catch (e) {
+                    console.error('Export error:', error);
+                }
+                showNotification($notification, errorMessage, 'error');
             },
             complete: function () {
                 $button.text(originalText).prop('disabled', false);
             }
         });
     });
+
+    // Helper function to show notifications
+    function showNotification($element, message, type) {
+        $element
+            .removeClass('success error')
+            .addClass(type)
+            .addClass('visible')
+            .text(message);
+
+        setTimeout(function () {
+            $element.removeClass('visible');
+            setTimeout(function () {
+                $element.remove();
+            }, 300);
+        }, 3000);
+    }
 });
