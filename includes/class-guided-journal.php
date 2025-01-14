@@ -12,30 +12,30 @@ class GuidedJournal {
     }
 
     public function init() {
-        add_action('init', [$this, 'register_post_types']);
-        add_filter('template_include', [$this, 'load_journal_templates'], 99);
-        add_shortcode('journal_grid', [$this, 'render_grid']);
-        add_shortcode('journal_entry', [$this, 'render_entry_page']);
-        add_action('wp_enqueue_scripts', [$this, 'enqueue_assets']);
-        add_action('wp_enqueue_scripts', [$this, 'enqueue_export_script']);
-        add_action('wp_ajax_save_journal_entry', [$this, 'save_entry']);
-        add_action('wp_ajax_get_journal_entries', [$this, 'get_entries']);
-        add_action('wp_ajax_export_journal_entries', [$this, 'export_entries']);
-    
-        // Basic access control - must be logged in
-        add_action('template_redirect', function() {
-            if (
-                strpos($_SERVER['REQUEST_URI'], '/grid') !== false ||
-                strpos($_SERVER['REQUEST_URI'], '/entry') !== false ||
-                is_singular('journal_prompt')
-            ) {
-                if (!is_user_logged_in()) {
-                    wp_redirect(wp_login_url(get_permalink()));
-                    exit;
-                }
+    add_action('init', [$this, 'register_post_types']);
+    add_filter('template_include', [$this, 'load_journal_templates'], 99);
+    add_shortcode('journal_grid', [$this, 'render_grid']);
+    add_shortcode('journal_entry', [$this, 'render_entry_page']);
+    add_action('wp_enqueue_scripts', [$this, 'enqueue_assets']);
+    add_action('wp_enqueue_scripts', [$this, 'enqueue_export_script']);
+    add_action('wp_ajax_save_journal_entry', [$this, 'save_entry']);
+    add_action('wp_ajax_get_journal_entries', [$this, 'get_entries']);
+    add_action('wp_ajax_export_journal_entries', [$this, 'export_entries']);
+
+    // Basic access control - must be logged in
+    add_action('template_redirect', function() {
+        if (
+            strpos($_SERVER['REQUEST_URI'], '/grid') !== false ||
+            strpos($_SERVER['REQUEST_URI'], '/entry') !== false ||
+            is_singular('journal_prompt')
+        ) {
+            if (!is_user_logged_in()) {
+                wp_redirect(wp_login_url(get_permalink()));
+                exit;
             }
-        });
-    }
+        }
+    });
+}
 
     public function register_post_types() {
         $args = [
