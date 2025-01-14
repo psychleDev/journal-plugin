@@ -19,6 +19,9 @@ class GuidedJournalSharing
 
         // Enqueue scripts
         add_action('wp_enqueue_scripts', [$this, 'enqueue_share_assets']);
+
+        // Cleanup expired tokens
+        add_action('guided_journal_daily_maintenance', [$this, 'cleanup_expired_tokens']);
     }
 
     public function init()
@@ -34,6 +37,8 @@ class GuidedJournalSharing
 
     public function activate()
     {
+        error_log('Creating share tokens table');
+
         // Create share tokens table
         $charset_collate = $this->wpdb->get_charset_collate();
 
@@ -47,7 +52,8 @@ class GuidedJournalSharing
             views int(11) DEFAULT 0,
             max_views int(11) DEFAULT NULL,
             PRIMARY KEY (id),
-            UNIQUE KEY token (token)
+            UNIQUE KEY token (token),
+            KEY user_id (user_id)
         ) $charset_collate;";
 
         require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
@@ -63,59 +69,97 @@ class GuidedJournalSharing
             wp_enqueue_script(
                 'guided-journal-sharing',
                 GUIDED_JOURNAL_PLUGIN_URL . 'assets/js/sharing.js',
-                ['jquery', 'wp-element'],
+                ['jquery'],
                 GUIDED_JOURNAL_VERSION,
                 true
             );
 
-            wp_localize_script('guided-journal-sharing', 'journalSharing', [
+            wp_localize_script('guided-journal-sharing', 'journalShare', [
                 'ajaxurl' => admin_url('admin-ajax.php'),
-                'nonce' => wp_create_nonce('journal_share_nonce')
+                'nonce' => wp_create_nonce('journal_share_nonce'),
+                'i18n' => [
+                    'copySuccess' => __('Copied!', 'guided-journal'),
+                    'copyError' => __('Failed to copy', 'guided-journal'),
+                    'generateError' => __('Failed to generate share link', 'guided-journal'),
+                    'shareSubject' => __('Check out my journal entry', 'guided-journal'),
+                    'shareText' => __('I wanted to share this journal entry with you:', 'guided-journal')
+                ]
             ]);
         }
     }
 
     public function generate_share_token()
     {
-        check_ajax_referer('journal_share_nonce', 'nonce');
+        error_log('Share token generation started');
 
+        // Verify nonce
+        if (!check_ajax_referer('journal_share_nonce', 'nonce', false)) {
+            error_log('Share token nonce verification failed');
+            wp_send_json_error(['message' => __('Invalid security token', 'guided-journal')]);
+            return;
+        }
+
+        // Check user login
         if (!is_user_logged_in()) {
+            error_log('Share token user not logged in');
             wp_send_json_error(['message' => __('Not authorized', 'guided-journal')]);
+            return;
         }
 
         $entry_day = intval($_POST['entry_day']);
-        $expiry_hours = isset($_POST['expiry_hours']) ? intval($_POST['expiry_hours']) : 24;
-        $max_views = isset($_POST['max_views']) ? intval($_POST['max_views']) : 3;
+        error_log('Generating share token for day: ' . $entry_day);
 
         try {
             // Generate unique token
             $token = wp_generate_password(32, false);
+            $user_id = get_current_user_id();
+            $expires_at = date('Y-m-d H:i:s', strtotime("+24 hours"));
 
-            // Calculate expiry
-            $expires_at = date('Y-m-d H:i:s', strtotime("+{$expiry_hours} hours"));
+            // First check if entry exists
+            $entry_exists = $this->wpdb->get_var($this->wpdb->prepare(
+                "SELECT id FROM {$this->wpdb->prefix}journal_entries WHERE user_id = %d AND day_number = %d",
+                $user_id,
+                $entry_day
+            ));
 
+            if (!$entry_exists) {
+                error_log('No entry found for sharing');
+                wp_send_json_error(['message' => __('No entry found to share', 'guided-journal')]);
+                return;
+            }
+
+            // Insert new share token
             $result = $this->wpdb->insert(
                 $this->table_name,
                 [
-                    'user_id' => get_current_user_id(),
+                    'user_id' => $user_id,
                     'entry_day' => $entry_day,
                     'token' => $token,
                     'expires_at' => $expires_at,
-                    'max_views' => $max_views
+                    'views' => 0,
+                    'max_views' => 3
                 ],
-                ['%d', '%d', '%s', '%s', '%d']
+                [
+                    '%d', // user_id
+                    '%d', // entry_day
+                    '%s', // token
+                    '%s', // expires_at
+                    '%d', // views
+                    '%d'  // max_views
+                ]
             );
 
             if ($result === false) {
-                $error = $this->wpdb->last_error;
-                error_log('Share Token Generation Error: Database insert failed. Error: ' . $error);
+                error_log('Database insert failed: ' . $this->wpdb->last_error);
                 wp_send_json_error(['message' => __('Failed to generate share link', 'guided-journal')]);
+                return;
             }
 
+            error_log('Share token generated successfully: ' . $token);
             wp_send_json_success(['token' => $token]);
+
         } catch (Exception $e) {
-            error_log('Share Token Generation Error: ' . $e->getMessage());
-            error_log('Share Token Generation Error: ' . $e->getTraceAsString());
+            error_log('Share token generation error: ' . $e->getMessage());
             wp_send_json_error(['message' => __('Failed to generate share link', 'guided-journal')]);
         }
     }
@@ -186,5 +230,16 @@ class GuidedJournalSharing
             return $error_template;
         }
         return get_404_template();
+    }
+
+    public function cleanup_expired_tokens()
+    {
+        error_log('Cleaning up expired share tokens');
+
+        $this->wpdb->query(
+            "DELETE FROM {$this->table_name} 
+            WHERE expires_at < NOW() 
+            OR (max_views IS NOT NULL AND views >= max_views)"
+        );
     }
 }

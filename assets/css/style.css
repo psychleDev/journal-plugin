@@ -562,3 +562,37 @@ body {
         width: auto;
     }
 }
+
+.copy-link {
+    padding: 8px 12px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    border-radius: 4px;
+    background-color: var(--gj-accent);
+    color: var(--gj-text);
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.copy-link:hover {
+    background-color: var(--gj-button-hover, #7a1518);
+}
+
+.copy-link .dashicons {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+    line-height: 16px;
+}
+
+/* Success state */
+.copy-link .dashicons-yes {
+    color: #4CAF50;
+}
+
+/* Error state */
+.copy-link .dashicons-no {
+    color: #f44336;
+}

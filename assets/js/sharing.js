@@ -1,7 +1,7 @@
 jQuery(document).ready(function ($) {
     console.log('Sharing script initialized');
 
-    // Add the popup HTML after the existing button
+    // Initialize share button in the container
     $('.share-button-container').append(`
         <div class="share-popup" style="display: none;">
             <div class="share-content">
@@ -44,11 +44,11 @@ jQuery(document).ready(function ($) {
 
             // Generate share token
             $.ajax({
-                url: journalShare.ajaxurl,  // Changed from journalAjax to journalShare
+                url: journalShare.ajaxurl,
                 type: 'POST',
                 data: {
                     action: 'generate_share_token',
-                    nonce: journalShare.nonce,  // Changed from journalAjax to journalShare
+                    nonce: journalShare.nonce,
                     entry_day: currentDay,
                 },
                 success: function (response) {
@@ -56,20 +56,17 @@ jQuery(document).ready(function ($) {
                     if (response.success) {
                         const shareUrl = `${window.location.origin}/shared-entry/${response.data.token}`;
                         $shareLink.val(shareUrl);
-                        showNotification('success', journalShare.i18n.copySuccess);
+                        showNotification('success', 'Share link generated successfully.');
                     } else {
                         console.error('Server returned error:', response.data?.message);
-                        showNotification('error', response.data?.message || journalShare.i18n.generateError);
+                        showNotification('error', response.data?.message || 'Failed to generate share link.');
                     }
                 },
                 error: function (xhr, status, error) {
                     console.error('AJAX error:', { xhr, status, error });
                     console.error('Response Text:', xhr.responseText);
-                    const errorMessage = parseAjaxError(xhr, journalShare.i18n.generateError);
+                    const errorMessage = parseAjaxError(xhr, 'Failed to generate share link.');
                     showNotification('error', errorMessage);
-                },
-                complete: function () {
-                    console.log('AJAX request completed');
                 }
             });
         }
@@ -87,20 +84,24 @@ jQuery(document).ready(function ($) {
             return;
         }
 
-        navigator.clipboard.writeText(linkText)
-            .then(() => {
-                showNotification('success', journalShare.i18n.copySuccess);
-            })
-            .catch(() => {
-                // Fallback copy mechanism
-                $shareLink[0].select();
-                try {
-                    document.execCommand('copy');
-                    showNotification('success', journalShare.i18n.copySuccess);
-                } catch (err) {
-                    showNotification('error', journalShare.i18n.copyError);
-                }
-            });
+        // Try using Clipboard API first
+        if (navigator.clipboard) {
+            navigator.clipboard.writeText(linkText)
+                .then(() => {
+                    $(this).html('<span class="dashicons dashicons-yes"></span> Copied!');
+                    showNotification('success', 'Link copied to clipboard!');
+                    setTimeout(() => {
+                        $(this).html('<span class="dashicons dashicons-clipboard"></span> Copy');
+                    }, 2000);
+                })
+                .catch(() => {
+                    // Fallback to legacy method if Clipboard API fails
+                    fallbackCopy($shareLink, this);
+                });
+        } else {
+            // Use fallback for browsers without Clipboard API
+            fallbackCopy($shareLink, this);
+        }
     });
 
     // Handle email share
@@ -135,7 +136,7 @@ jQuery(document).ready(function ($) {
         }
     });
 
-    // Helper functions
+    // Helper function to parse AJAX error
     function parseAjaxError(xhr, defaultMessage) {
         console.log('Parsing AJAX error:', xhr);
         try {
@@ -149,6 +150,27 @@ jQuery(document).ready(function ($) {
         return defaultMessage;
     }
 
+    // Helper function for fallback copy mechanism
+    function fallbackCopy($input, button) {
+        try {
+            $input.select();
+            document.execCommand('copy');
+            $(button).html('<span class="dashicons dashicons-yes"></span> Copied!');
+            showNotification('success', 'Link copied to clipboard!');
+            setTimeout(() => {
+                $(button).html('<span class="dashicons dashicons-clipboard"></span> Copy');
+            }, 2000);
+        } catch (err) {
+            console.error('Copy failed:', err);
+            $(button).html('<span class="dashicons dashicons-no"></span> Failed');
+            showNotification('error', 'Failed to copy link. Please copy manually.');
+            setTimeout(() => {
+                $(button).html('<span class="dashicons dashicons-clipboard"></span> Copy');
+            }, 2000);
+        }
+    }
+
+    // Helper function to get current day from URL
     function getCurrentDay() {
         const path = window.location.pathname;
         const matches = path.match(/\/journal-prompts\/(\d+)/);
@@ -157,6 +179,7 @@ jQuery(document).ready(function ($) {
         return day;
     }
 
+    // Helper function to show notifications
     function showNotification(type, message) {
         console.log('Showing notification:', { type, message });
 
@@ -165,6 +188,9 @@ jQuery(document).ready(function ($) {
             .appendTo('body');
 
         setTimeout(() => $notification.addClass('visible'), 10);
-        setTimeout(() => $notification.removeClass('visible').remove(), 3000);
+        setTimeout(() => {
+            $notification.removeClass('visible');
+            setTimeout(() => $notification.remove(), 300);
+        }, 3000);
     }
 });
