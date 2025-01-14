@@ -130,7 +130,7 @@ class GuidedJournal
 
         wp_localize_script('guided-journal-script', 'journalAjax', [
             'ajaxurl' => admin_url('admin-ajax.php'),
-            'nonce' => wp_create_nonce('journal_nonce'),
+            'nonce' => wp_create_nonce('journal_share_nonce'),
             'maxDay' => $max_day
         ]);
 
