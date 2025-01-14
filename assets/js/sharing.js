@@ -39,7 +39,6 @@ jQuery(document).ready(function ($) {
         const $shareLink = $('.share-link');
 
         if (!$shareLink.val()) {
-            // Get the current day number from the URL
             const currentDay = getCurrentDay();
 
             // Generate share token
@@ -49,19 +48,21 @@ jQuery(document).ready(function ($) {
                 data: {
                     action: 'generate_share_token',
                     nonce: journalAjax.nonce,
-                    entry_day: currentDay
+                    entry_day: currentDay,
                 },
                 success: function (response) {
                     if (response.success) {
-                        const shareUrl = window.location.origin + '/shared-entry/' + response.data.token;
+                        const shareUrl = `${window.location.origin}/shared-entry/${response.data.token}`;
                         $shareLink.val(shareUrl);
+                        showNotification('success', 'Share link generated successfully.');
                     } else {
-                        showNotification('error', 'Failed to generate share link');
+                        showNotification('error', response.data?.message || 'Failed to generate share link.');
                     }
                 },
-                error: function () {
-                    showNotification('error', 'Failed to generate share link');
-                }
+                error: function (xhr) {
+                    const errorMessage = parseAjaxError(xhr, 'Failed to generate share link.');
+                    showNotification('error', errorMessage);
+                },
             });
         }
 
@@ -71,27 +72,23 @@ jQuery(document).ready(function ($) {
     // Handle copy button
     $('.copy-link').on('click', function () {
         const $shareLink = $('.share-link');
-        $shareLink.select();
+        const shareText = $shareLink.val();
 
-        try {
-            // Try to use the new clipboard API first
-            if (navigator.clipboard && window.isSecureContext) {
-                navigator.clipboard.writeText($shareLink.val())
-                    .then(() => updateCopyButton(true))
-                    .catch(() => fallbackCopy($shareLink, this));
-            } else {
-                fallbackCopy($shareLink, this);
-            }
-        } catch (err) {
-            showNotification('error', 'Failed to copy to clipboard');
+        if (!shareText) {
+            showNotification('error', 'No share link available to copy.');
+            return;
         }
+
+        navigator.clipboard.writeText(shareText)
+            .then(() => updateCopyButton(true))
+            .catch(() => fallbackCopy($shareLink, this));
     });
 
     // Handle email share
     $('.email-share').on('click', function () {
         const shareUrl = $('.share-link').val();
         if (!shareUrl) {
-            showNotification('error', 'Please wait for the share link to generate');
+            showNotification('error', 'Please wait for the share link to generate.');
             return;
         }
 
@@ -104,7 +101,7 @@ jQuery(document).ready(function ($) {
     $('.twitter-share').on('click', function () {
         const shareUrl = $('.share-link').val();
         if (!shareUrl) {
-            showNotification('error', 'Please wait for the share link to generate');
+            showNotification('error', 'Please wait for the share link to generate.');
             return;
         }
 
@@ -119,6 +116,19 @@ jQuery(document).ready(function ($) {
         }
     });
 
+    // Helper function to parse AJAX error
+    function parseAjaxError(xhr, defaultMessage) {
+        try {
+            if (xhr.responseText) {
+                const response = JSON.parse(xhr.responseText);
+                return response.data?.message || defaultMessage;
+            }
+        } catch (err) {
+            console.error('Error parsing AJAX error response:', err);
+        }
+        return defaultMessage;
+    }
+
     // Helper function to get current day from URL
     function getCurrentDay() {
         const path = window.location.pathname;
@@ -129,12 +139,12 @@ jQuery(document).ready(function ($) {
     // Helper function for fallback copy mechanism
     function fallbackCopy($shareLink, button) {
         try {
-            // Fallback to document.execCommand('copy')
+            $shareLink[0].select();
             document.execCommand('copy');
             updateCopyButton(true);
         } catch (err) {
-            showNotification('error', 'Failed to copy to clipboard');
             updateCopyButton(false);
+            showNotification('error', 'Failed to copy to clipboard.');
         }
     }
 
@@ -145,15 +155,13 @@ jQuery(document).ready(function ($) {
 
         if (success) {
             $button.html('<span class="dashicons dashicons-yes"></span> Copied!');
-            setTimeout(() => {
-                $button.html(originalContent);
-            }, 2000);
         } else {
             $button.html('<span class="dashicons dashicons-no"></span> Failed');
-            setTimeout(() => {
-                $button.html(originalContent);
-            }, 2000);
         }
+
+        setTimeout(() => {
+            $button.html(originalContent);
+        }, 2000);
     }
 
     // Helper function to show notifications
@@ -162,17 +170,7 @@ jQuery(document).ready(function ($) {
             .text(message)
             .appendTo('body');
 
-        // Add visible class after a short delay to trigger animation
-        setTimeout(() => {
-            $notification.addClass('visible');
-        }, 10);
-
-        // Remove notification after delay
-        setTimeout(() => {
-            $notification.removeClass('visible');
-            setTimeout(() => {
-                $notification.remove();
-            }, 300); // Match transition duration
-        }, 3000);
+        setTimeout(() => $notification.addClass('visible'), 10);
+        setTimeout(() => $notification.removeClass('visible').remove(), 3000);
     }
 });
