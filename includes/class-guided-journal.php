@@ -199,10 +199,22 @@ class GuidedJournal
 
     public function enqueue_export_script()
     {
-        if (is_singular('journal_prompt') || strpos($_SERVER['REQUEST_URI'], '/grid') !== false) {
+        // Get the current page ID
+        $page_id = get_queried_object_id();
+
+        // Add debugging
+        error_log('Checking export script enqueue. Page ID: ' . $page_id);
+        error_log('REQUEST_URI: ' . $_SERVER['REQUEST_URI']);
+
+        // Check if this is the grid page (you'll need to replace 7 with your actual page ID)
+        $is_grid_page = ($page_id === 7);
+
+        if (is_singular('journal_prompt') || $is_grid_page) {
+            error_log('Enqueueing export script');
+
             wp_enqueue_script(
                 'guided-journal-export',
-                GUIDED_JOURNAL_PLUGIN_URL . 'assets/js/export.js',
+                GUIDED_JOURNAL_PLUGIN_URL . '/assets/js/export.js',
                 ['jquery'],
                 GUIDED_JOURNAL_VERSION,
                 true
@@ -212,6 +224,16 @@ class GuidedJournal
                 'ajaxurl' => admin_url('admin-ajax.php'),
                 'nonce' => wp_create_nonce('journal_nonce')
             ]);
+
+            // Add debugging to verify script was enqueued
+            add_action('wp_footer', function () {
+                error_log('Export script enqueued. Verifying in footer.');
+                ?>
+                <script>
+                    console.log('Export script loaded. journalAjax object:', journalAjax);
+                </script>
+                    <?php
+            }, 999);
         }
     }
 
