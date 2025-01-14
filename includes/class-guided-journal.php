@@ -104,22 +104,28 @@ class GuidedJournal
 
     public function enqueue_assets()
     {
+        // Debug the plugin URL
+        error_log('Plugin URL: ' . GUIDED_JOURNAL_PLUGIN_URL);
+        error_log('Plugin Directory: ' . GUIDED_JOURNAL_PLUGIN_DIR);
+
         // Only enqueue editor assets on journal entry pages
         if (is_singular('journal_prompt') || strpos($_SERVER['REQUEST_URI'], '/entry') !== false) {
             wp_enqueue_editor();
             wp_enqueue_media();
         }
 
+        // Enqueue main CSS
         wp_enqueue_style(
             'guided-journal-style',
-            GUIDED_JOURNAL_PLUGIN_URL . 'assets/css/style.css',
+            plugin_dir_url(__FILE__) . 'assets/css/style.css',
             [],
             GUIDED_JOURNAL_VERSION
         );
 
+        // Enqueue main script
         wp_enqueue_script(
             'guided-journal-script',
-            GUIDED_JOURNAL_PLUGIN_URL . 'assets/js/script.js',
+            plugin_dir_url(__FILE__) . 'assets/js/script.js',
             ['jquery'],
             GUIDED_JOURNAL_VERSION,
             true
@@ -130,24 +136,33 @@ class GuidedJournal
 
         wp_localize_script('guided-journal-script', 'journalAjax', [
             'ajaxurl' => admin_url('admin-ajax.php'),
-            'nonce' => wp_create_nonce('journal_share_nonce'),
+            'nonce' => wp_create_nonce('journal_nonce'),
             'maxDay' => $max_day
         ]);
 
+        // Debug current post type
+        error_log('Current post type: ' . get_post_type());
+        error_log('Is singular journal_prompt: ' . (is_singular('journal_prompt') ? 'yes' : 'no'));
+
         // Enqueue share functionality on single journal prompt pages
         if (is_singular('journal_prompt')) {
+            // Debug sharing script path
+            $sharing_url = plugin_dir_url(__FILE__) . 'assets/js/sharing.js';
+            error_log('Sharing script URL: ' . $sharing_url);
+
             // Enqueue Dashicons
             wp_enqueue_style('dashicons');
 
+            // Enqueue sharing script
             wp_enqueue_script(
-                'guided-journal-share',
-                GUIDED_JOURNAL_PLUGIN_URL . 'assets/js/sharing.js',
+                'guided-journal-sharing',
+                $sharing_url,
                 ['jquery'],
                 GUIDED_JOURNAL_VERSION,
                 true
             );
 
-            wp_localize_script('guided-journal-share', 'journalShare', [
+            wp_localize_script('guided-journal-sharing', 'journalShare', [
                 'ajaxurl' => admin_url('admin-ajax.php'),
                 'nonce' => wp_create_nonce('journal_share_nonce'),
                 'i18n' => [
@@ -158,6 +173,8 @@ class GuidedJournal
                     'shareText' => __('I wanted to share this journal entry with you:', 'guided-journal')
                 ]
             ]);
+
+            error_log('Share script enqueued with URL: ' . $sharing_url);
         }
     }
 

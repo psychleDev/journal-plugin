@@ -145,7 +145,28 @@ error_log('Loading journal prompt template for day: ' . $current_day);
     echo "-->";
     ?>
 </div>
+<!-- Script loading debug -->
+<div class="debug-info" style="display:none;">
+    <?php
+    global $wp_scripts;
+    echo "<!-- Enqueued scripts:\n";
+    foreach ($wp_scripts->queue as $handle) {
+        echo "$handle\n";
+        $script = $wp_scripts->registered[$handle];
+        echo "  Source: " . $script->src . "\n";
+    }
+    echo "-->";
+    ?>
+</div>
 
+<script>
+    jQuery(document).ready(function ($) {
+        console.log('Scripts loaded:', {
+            'sharing_script_loaded': typeof journalShare !== 'undefined',
+            'jquery_loaded': typeof jQuery !== 'undefined'
+        });
+    });
+</script>
 <?php
 // Debug: Display footer action hooks
 add_action('wp_footer', function () {
