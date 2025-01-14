@@ -21,6 +21,8 @@ require_once GUIDED_JOURNAL_PLUGIN_DIR . 'includes/class-guided-journal.php';
 require_once GUIDED_JOURNAL_PLUGIN_DIR . 'includes/class-journal-roles.php';
 require_once GUIDED_JOURNAL_PLUGIN_DIR . 'includes/class-guided-journal-settings.php';
 require_once GUIDED_JOURNAL_PLUGIN_DIR . 'includes/class-journal-stats.php';
+require_once GUIDED_JOURNAL_PLUGIN_DIR . 'includes/class-guided-journal-sharing.php';
+
 
 /**
  * Initialize plugin
