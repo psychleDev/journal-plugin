@@ -1,34 +1,32 @@
 jQuery(document).ready(function ($) {
-    // Add share button to navigation
-    $('.navigation').append(`
-        <div class="share-button-container">
-            <button class="share-entry contents-toggle">
-                <span class="dashicons dashicons-share"></span>
-                Share Entry
-            </button>
-            <div class="share-popup" style="display: none;">
-                <div class="share-content">
-                    <h3>Share Entry</h3>
-                    <div class="share-link-container">
-                        <input type="text" class="share-link" readonly>
-                        <button class="copy-link contents-toggle">
-                            <span class="dashicons dashicons-clipboard"></span>
-                            Copy
-                        </button>
-                    </div>
-                    <div class="share-options">
-                        <button class="email-share contents-toggle">
-                            <span class="dashicons dashicons-email"></span>
-                            Email
-                        </button>
-                        <button class="twitter-share contents-toggle">
-                            <span class="dashicons dashicons-twitter"></span>
-                            Twitter
-                        </button>
-                    </div>
-                    <div class="share-info">
-                        Link expires in 24 hours and can be viewed up to 3 times
-                    </div>
+    // Initialize share button in the container
+    $('.share-button-container').html(`
+        <button class="share-entry contents-toggle">
+            <span class="dashicons dashicons-share"></span>
+            Share Entry
+        </button>
+        <div class="share-popup" style="display: none;">
+            <div class="share-content">
+                <h3>Share Entry</h3>
+                <div class="share-link-container">
+                    <input type="text" class="share-link" readonly>
+                    <button class="copy-link contents-toggle">
+                        <span class="dashicons dashicons-clipboard"></span>
+                        Copy
+                    </button>
+                </div>
+                <div class="share-options">
+                    <button class="email-share contents-toggle">
+                        <span class="dashicons dashicons-email"></span>
+                        Email
+                    </button>
+                    <button class="twitter-share contents-toggle">
+                        <span class="dashicons dashicons-twitter"></span>
+                        Twitter
+                    </button>
+                </div>
+                <div class="share-info">
+                    Link expires in 24 hours and can be viewed up to 3 times
                 </div>
             </div>
         </div>
@@ -41,6 +39,9 @@ jQuery(document).ready(function ($) {
         const $shareLink = $('.share-link');
 
         if (!$shareLink.val()) {
+            // Get the current day number from the URL
+            const currentDay = getCurrentDay();
+
             // Generate share token
             $.ajax({
                 url: journalAjax.ajaxurl,
@@ -48,15 +49,18 @@ jQuery(document).ready(function ($) {
                 data: {
                     action: 'generate_share_token',
                     nonce: journalAjax.nonce,
-                    entry_day: getCurrentDay()
+                    entry_day: currentDay
                 },
                 success: function (response) {
                     if (response.success) {
                         const shareUrl = window.location.origin + '/shared-entry/' + response.data.token;
                         $shareLink.val(shareUrl);
                     } else {
-                        alert('Failed to generate share link');
+                        showNotification('error', 'Failed to generate share link');
                     }
+                },
+                error: function () {
+                    showNotification('error', 'Failed to generate share link');
                 }
             });
         }
@@ -68,18 +72,29 @@ jQuery(document).ready(function ($) {
     $('.copy-link').on('click', function () {
         const $shareLink = $('.share-link');
         $shareLink.select();
-        document.execCommand('copy');
 
-        const $button = $(this);
-        $button.text('Copied!');
-        setTimeout(() => {
-            $button.html('<span class="dashicons dashicons-clipboard"></span> Copy');
-        }, 2000);
+        try {
+            // Try to use the new clipboard API first
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText($shareLink.val())
+                    .then(() => updateCopyButton(true))
+                    .catch(() => fallbackCopy($shareLink, this));
+            } else {
+                fallbackCopy($shareLink, this);
+            }
+        } catch (err) {
+            showNotification('error', 'Failed to copy to clipboard');
+        }
     });
 
     // Handle email share
     $('.email-share').on('click', function () {
         const shareUrl = $('.share-link').val();
+        if (!shareUrl) {
+            showNotification('error', 'Please wait for the share link to generate');
+            return;
+        }
+
         const subject = encodeURIComponent('Check out my journal entry');
         const body = encodeURIComponent(`I wanted to share this journal entry with you:\n\n${shareUrl}`);
         window.location.href = `mailto:?subject=${subject}&body=${body}`;
@@ -88,6 +103,11 @@ jQuery(document).ready(function ($) {
     // Handle Twitter share
     $('.twitter-share').on('click', function () {
         const shareUrl = $('.share-link').val();
+        if (!shareUrl) {
+            showNotification('error', 'Please wait for the share link to generate');
+            return;
+        }
+
         const text = encodeURIComponent('Check out my journal entry:');
         window.open(`https://twitter.com/intent/tweet?text=${text}&url=${encodeURIComponent(shareUrl)}`);
     });
@@ -98,4 +118,61 @@ jQuery(document).ready(function ($) {
             $('.share-popup').slideUp(200);
         }
     });
+
+    // Helper function to get current day from URL
+    function getCurrentDay() {
+        const path = window.location.pathname;
+        const matches = path.match(/\/journal-prompts\/(\d+)/);
+        return matches && matches[1] ? parseInt(matches[1]) : 1;
+    }
+
+    // Helper function for fallback copy mechanism
+    function fallbackCopy($shareLink, button) {
+        try {
+            // Fallback to document.execCommand('copy')
+            document.execCommand('copy');
+            updateCopyButton(true);
+        } catch (err) {
+            showNotification('error', 'Failed to copy to clipboard');
+            updateCopyButton(false);
+        }
+    }
+
+    // Helper function to update copy button state
+    function updateCopyButton(success) {
+        const $button = $('.copy-link');
+        const originalContent = '<span class="dashicons dashicons-clipboard"></span> Copy';
+
+        if (success) {
+            $button.html('<span class="dashicons dashicons-yes"></span> Copied!');
+            setTimeout(() => {
+                $button.html(originalContent);
+            }, 2000);
+        } else {
+            $button.html('<span class="dashicons dashicons-no"></span> Failed');
+            setTimeout(() => {
+                $button.html(originalContent);
+            }, 2000);
+        }
+    }
+
+    // Helper function to show notifications
+    function showNotification(type, message) {
+        const $notification = $(`<div class="journal-notification ${type}"></div>`)
+            .text(message)
+            .appendTo('body');
+
+        // Add visible class after a short delay to trigger animation
+        setTimeout(() => {
+            $notification.addClass('visible');
+        }, 10);
+
+        // Remove notification after delay
+        setTimeout(() => {
+            $notification.removeClass('visible');
+            setTimeout(() => {
+                $notification.remove();
+            }, 300); // Match transition duration
+        }, 3000);
+    }
 });

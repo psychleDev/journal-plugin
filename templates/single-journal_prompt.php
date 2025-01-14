@@ -4,6 +4,13 @@
  */
 
 get_header();
+
+// Get the current day number from the post title
+$current_day = intval(get_the_title());
+
+// Get total number of prompts
+$total_prompts = wp_count_posts('journal_prompt')->publish;
+
 ?>
 
 <div id="primary" class="content-area">
@@ -25,7 +32,7 @@ get_header();
                             </div>
 
                             <div class="journal-container">
-                                <h2><?php printf(__('Day %d', 'guided-journal'), get_the_title()); ?></h2>
+                                <h2><?php printf(__('Day %d', 'guided-journal'), $current_day); ?></h2>
 
                                 <div class="prompt"><?php the_content(); ?></div>
 
@@ -49,7 +56,7 @@ get_header();
                                     "SELECT entry_text FROM {$wpdb->prefix}journal_entries 
                                      WHERE user_id = %d AND day_number = %d",
                                     get_current_user_id(),
-                                    get_the_title()
+                                    $current_day
                                 ));
 
                                 wp_editor($entry_content, 'journal-entry', $editor_settings);
@@ -68,7 +75,7 @@ get_header();
                                         <?php _e('Next Day', 'guided-journal'); ?>
                                     </button>
 
-                                    <div class="share-button-container"></div> <!-- Changed from id to class -->
+                                    <div class="share-button-container"></div>
                                 </div>
 
                                 <div class="save-status">
