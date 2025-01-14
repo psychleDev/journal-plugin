@@ -123,6 +123,15 @@ class GuidedJournal
         error_log('Plugin absolute path: ' . $plugin_path);
         error_log('Plugin URL: ' . $plugin_url);
 
+        // Current post/page debug
+        global $post;
+        error_log('Current post ID: ' . ($post ? $post->ID : 'no post'));
+        error_log('Current post type: ' . ($post ? $post->post_type : 'no post type'));
+        error_log('Is journal prompt (direct check): ' . (($post && $post->post_type === 'journal_prompt') ? 'yes' : 'no'));
+
+        // Enqueue Dashicons - Add it here for global availability
+        wp_enqueue_style('dashicons');
+
         // Enqueue main CSS
         wp_enqueue_style(
             'guided-journal-style',
@@ -154,9 +163,6 @@ class GuidedJournal
         $is_journal_prompt = ($post && $post->post_type === 'journal_prompt');
 
         if ($is_journal_prompt) {
-            // Enqueue Dashicons
-            wp_enqueue_style('dashicons');
-
             // Enqueue sharing script
             wp_enqueue_script(
                 'guided-journal-sharing',
