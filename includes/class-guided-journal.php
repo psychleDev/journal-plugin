@@ -17,9 +17,11 @@ class GuidedJournal {
         add_shortcode('journal_grid', [$this, 'render_grid']);
         add_shortcode('journal_entry', [$this, 'render_entry_page']);
         add_action('wp_enqueue_scripts', [$this, 'enqueue_assets']);
+        add_action('wp_enqueue_scripts', [$this, 'enqueue_export_script']);
         add_action('wp_ajax_save_journal_entry', [$this, 'save_entry']);
         add_action('wp_ajax_get_journal_entries', [$this, 'get_entries']);
-
+        add_action('wp_ajax_export_journal_entries', [$this, 'export_entries']);
+    
         // Basic access control - must be logged in
         add_action('template_redirect', function() {
             if (
