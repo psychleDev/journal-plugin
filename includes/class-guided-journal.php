@@ -4,14 +4,17 @@ namespace GuidedJournal;
 use \WP_Query;
 use \WP_Error;
 
-class GuidedJournal {
+class GuidedJournal
+{
     private $plugin_path;
 
-    public function __construct() {
+    public function __construct()
+    {
         $this->plugin_path = GUIDED_JOURNAL_PLUGIN_DIR;
     }
 
-    public function init() {
+    public function init()
+    {
         add_action('init', [$this, 'register_post_types']);
         add_filter('template_include', [$this, 'load_journal_templates'], 99);
         add_shortcode('journal_grid', [$this, 'render_grid']);
@@ -24,7 +27,7 @@ class GuidedJournal {
         add_action('wp_ajax_generate_share_token', [$this, 'generate_share_token']);
 
         // Basic access control - must be logged in
-        add_action('template_redirect', function() {
+        add_action('template_redirect', function () {
             if (
                 strpos($_SERVER['REQUEST_URI'], '/grid') !== false ||
                 strpos($_SERVER['REQUEST_URI'], '/entry') !== false ||
@@ -38,7 +41,8 @@ class GuidedJournal {
         });
     }
 
-    public function register_post_types() {
+    public function register_post_types()
+    {
         $args = [
             'labels' => [
                 'name' => __('Journal Prompts', 'guided-journal'),
@@ -80,20 +84,21 @@ class GuidedJournal {
         register_post_type('journal_prompt', $args);
     }
 
-    public function enqueue_assets() {
+    public function enqueue_assets()
+    {
         // Only enqueue editor assets on journal entry pages
         if (is_singular('journal_prompt') || strpos($_SERVER['REQUEST_URI'], '/entry') !== false) {
             wp_enqueue_editor();
             wp_enqueue_media();
         }
-    
+
         wp_enqueue_style(
             'guided-journal-style',
             GUIDED_JOURNAL_PLUGIN_URL . 'assets/css/style.css',
             [],
             GUIDED_JOURNAL_VERSION
         );
-    
+
         wp_enqueue_script(
             'guided-journal-script',
             GUIDED_JOURNAL_PLUGIN_URL . 'assets/js/script.js',
@@ -101,21 +106,21 @@ class GuidedJournal {
             GUIDED_JOURNAL_VERSION,
             true
         );
-    
+
         // Get the total number of prompts
         $max_day = wp_count_posts('journal_prompt')->publish;
-    
+
         wp_localize_script('guided-journal-script', 'journalAjax', [
             'ajaxurl' => admin_url('admin-ajax.php'),
             'nonce' => wp_create_nonce('journal_nonce'),
             'maxDay' => $max_day
         ]);
-    
+
         // Enqueue share functionality on single journal prompt pages
         if (is_singular('journal_prompt')) {
             // Enqueue Dashicons
             wp_enqueue_style('dashicons');
-            
+
             // Enqueue share script
             wp_enqueue_script(
                 'guided-journal-share',
@@ -124,7 +129,7 @@ class GuidedJournal {
                 GUIDED_JOURNAL_VERSION,
                 true
             );
-    
+
             // Localize script for sharing
             wp_localize_script('guided-journal-share', 'journalShare', [
                 'ajaxurl' => admin_url('admin-ajax.php'),
@@ -140,7 +145,8 @@ class GuidedJournal {
         }
     }
 
-    public function render_grid($atts) {
+    public function render_grid($atts)
+    {
         if (!is_user_logged_in()) {
             return sprintf(
                 '<p>%s</p>',
@@ -148,27 +154,27 @@ class GuidedJournal {
                 wp_login_url(get_permalink())
             );
         }
-    
+
         // Get completed entries and stats for current user
         global $wpdb;
         $completed_entries = $wpdb->get_col($wpdb->prepare(
             "SELECT day_number FROM {$wpdb->prefix}journal_entries WHERE user_id = %d",
             get_current_user_id()
         ));
-    
+
         // Get total words written
         $total_words = $wpdb->get_var($wpdb->prepare(
             "SELECT SUM(word_count) FROM {$wpdb->prefix}journal_stats WHERE user_id = %d",
             get_current_user_id()
         ));
-    
+
         // Calculate streak
         $streak = $this->calculate_streak(get_current_user_id());
-    
+
         // Calculate completion percentage
         $total_prompts = wp_count_posts('journal_prompt')->publish;
         $completion_percentage = $total_prompts > 0 ? round((count($completed_entries) / $total_prompts) * 100) : 0;
-    
+
         ob_start();
         ?>
         <div class="container">
@@ -180,7 +186,7 @@ class GuidedJournal {
                     </button>
                 </div>
             </div>
-    
+
             <!-- Stats Dashboard -->
             <div class="journal-dashboard">
                 <div class="stats-overview">
@@ -213,7 +219,7 @@ class GuidedJournal {
                         </div>
                     </div>
                 </div>
-    
+
                 <!-- Progress bar -->
                 <div class="progress-section">
                     <div class="progress-label">
@@ -225,7 +231,7 @@ class GuidedJournal {
                     </div>
                 </div>
             </div>
-    
+
             <div class="prompt-grid">
                 <?php
                 $the_query = new WP_Query([
@@ -237,7 +243,7 @@ class GuidedJournal {
                     'order' => 'ASC',
                     'posts_per_page' => -1
                 ]);
-    
+
                 if ($the_query->have_posts()):
                     while ($the_query->have_posts()):
                         $the_query->the_post();
@@ -245,7 +251,8 @@ class GuidedJournal {
                         $formatted_number = sprintf('%02d', $number);
                         $completed_class = in_array($number, $completed_entries) ? 'completed' : '';
                         ?>
-                        <a href="<?php the_permalink(); ?>" class="prompt-card <?php echo esc_attr($completed_class); ?>" data-day="<?php echo esc_attr($number); ?>">
+                        <a href="<?php the_permalink(); ?>" class="prompt-card <?php echo esc_attr($completed_class); ?>"
+                            data-day="<?php echo esc_attr($number); ?>">
                             <span class="day-number"><?php echo esc_html($formatted_number); ?></span>
                         </a>
                         <?php
@@ -259,7 +266,8 @@ class GuidedJournal {
         return ob_get_clean();
     }
 
-    public function render_entry_page($atts) {
+    public function render_entry_page($atts)
+    {
         if (!is_user_logged_in()) {
             return sprintf(
                 '<p>%s</p>',
@@ -314,6 +322,7 @@ class GuidedJournal {
                     <button class="next-day" <?php echo ($day >= wp_count_posts('journal_prompt')->publish) ? 'disabled' : ''; ?>>
                         <?php _e('Next Day', 'guided-journal'); ?>
                     </button>
+                    <div class="share-button-container"></div>
                 </div>
             </div>
         </div>
@@ -321,9 +330,10 @@ class GuidedJournal {
         return ob_get_clean();
     }
 
-    private function calculate_streak($user_id) {
+    private function calculate_streak($user_id)
+    {
         global $wpdb;
-        
+
         $entries = $wpdb->get_results($wpdb->prepare(
             "SELECT DATE(created_at) as entry_date 
             FROM {$wpdb->prefix}journal_entries 
@@ -331,25 +341,25 @@ class GuidedJournal {
             ORDER BY created_at DESC",
             $user_id
         ));
-    
+
         if (empty($entries)) {
             return 0;
         }
-    
+
         $streak = 1;
         $last_date = strtotime($entries[0]->entry_date);
         $today = strtotime('today');
-    
+
         // Break streak if no entry today or yesterday
         if ($last_date < strtotime('yesterday')) {
             return 0;
         }
-    
+
         // Calculate consecutive days
         for ($i = 1; $i < count($entries); $i++) {
             $current_date = strtotime($entries[$i]->entry_date);
             $date_diff = round(($last_date - $current_date) / (60 * 60 * 24));
-            
+
             if ($date_diff == 1) {
                 $streak++;
                 $last_date = $current_date;
@@ -357,15 +367,17 @@ class GuidedJournal {
                 break;
             }
         }
-    
+
         return $streak;
     }
-    private function get_prompt($day) {
+    private function get_prompt($day)
+    {
         $prompt = get_page_by_path($day, OBJECT, 'journal_prompt');
         return $prompt ? apply_filters('the_content', $prompt->post_content) : sprintf(__('Prompt for day %d', 'guided-journal'), $day);
     }
 
-    private function get_entry($user_id, $day) {
+    private function get_entry($user_id, $day)
+    {
         global $wpdb;
         return $wpdb->get_var($wpdb->prepare(
             "SELECT entry_text FROM {$wpdb->prefix}journal_entries 
@@ -375,7 +387,8 @@ class GuidedJournal {
         ));
     }
 
-    public function save_entry() {
+    public function save_entry()
+    {
         check_ajax_referer('journal_nonce', 'nonce');
 
         if (!is_user_logged_in()) {
@@ -440,7 +453,8 @@ class GuidedJournal {
         ]);
     }
 
-    public function get_entries() {
+    public function get_entries()
+    {
         check_ajax_referer('journal_nonce', 'nonce');
 
         if (!is_user_logged_in()) {
@@ -457,23 +471,24 @@ class GuidedJournal {
         wp_send_json_success(['entries' => $entries]);
     }
 
-    public function export_entries() {
+    public function export_entries()
+    {
         // Prevent any output before headers
         ob_clean();
-        
+
         try {
             // Basic security checks
             if (!check_ajax_referer('journal_nonce', 'nonce', false)) {
                 throw new \Exception(__('Invalid security token', 'guided-journal'));
             }
-    
+
             if (!is_user_logged_in()) {
                 throw new \Exception(__('Please log in to export entries', 'guided-journal'));
             }
-    
+
             $user_id = get_current_user_id();
             global $wpdb;
-    
+
             // Get entries with error handling
             $entries = $wpdb->get_results($wpdb->prepare(
                 "SELECT 
@@ -489,18 +504,18 @@ class GuidedJournal {
                  ORDER BY je.day_number ASC",
                 $user_id
             ));
-    
+
             if ($wpdb->last_error) {
                 throw new \Exception('Database error: ' . $wpdb->last_error);
             }
-    
+
             if (empty($entries)) {
                 throw new \Exception(__('No entries found to export', 'guided-journal'));
             }
-    
+
             // Prepare CSV data
             $csv_data = [];
-            
+
             // Add headers
             $csv_data[] = array(
                 __('Day', 'guided-journal'),
@@ -508,7 +523,7 @@ class GuidedJournal {
                 __('Entry', 'guided-journal'),
                 __('Date Written', 'guided-journal')
             );
-    
+
             // Add entries
             foreach ($entries as $entry) {
                 $csv_data[] = array(
@@ -518,14 +533,14 @@ class GuidedJournal {
                     get_date_from_gmt($entry->created_at, get_option('date_format') . ' ' . get_option('time_format'))
                 );
             }
-    
+
             // Get user info and generate filename
             $user = wp_get_current_user();
             $username = sanitize_file_name($user->display_name);
             if (empty(trim($username))) {
                 $username = sanitize_file_name($user->user_login);
             }
-    
+
             // Create filename with date
             $date = current_time('Y-m-d');
             $filename = sprintf(
@@ -534,34 +549,34 @@ class GuidedJournal {
                 $date
             );
             $filename = sanitize_file_name($filename);
-    
+
             // Clear any previous output and check headers
             if (headers_sent($file, $line)) {
                 throw new \Exception("Headers already sent in $file on line $line");
             }
-    
+
             // Send headers
             header('Content-Type: text/csv; charset=utf-8');
             header('Content-Disposition: attachment; filename="' . $filename . '"');
             header('Pragma: public');
             header('Cache-Control: must-revalidate, post-check=0, pre-check=0');
             header('Expires: 0');
-    
+
             // Create output handle
             $output = fopen('php://output', 'w');
-    
+
             // Add UTF-8 BOM for Excel compatibility
             fputs($output, "\xEF\xBB\xBF");
-    
+
             // Write data
             foreach ($csv_data as $row) {
                 fputcsv($output, $row);
             }
-    
+
             // Close the output stream
             fclose($output);
             exit;
-    
+
         } catch (\Exception $e) {
             status_header(500);
             wp_send_json_error(array(
@@ -570,22 +585,23 @@ class GuidedJournal {
             ));
         }
     }
-    public function generate_share_token() {
+    public function generate_share_token()
+    {
         check_ajax_referer('journal_share_nonce', 'nonce');
-    
+
         if (!is_user_logged_in()) {
             wp_send_json_error(['message' => __('Not authorized', 'guided-journal')]);
             return;
         }
-    
+
         $entry_day = intval($_POST['entry_day']);
         $expiry_hours = isset($_POST['expiry_hours']) ? intval($_POST['expiry_hours']) : 24;
         $max_views = isset($_POST['max_views']) ? intval($_POST['max_views']) : 3;
-    
+
         global $wpdb;
         $token = wp_generate_password(32, false);
         $expires_at = date('Y-m-d H:i:s', strtotime("+{$expiry_hours} hours"));
-    
+
         $result = $wpdb->insert(
             $wpdb->prefix . 'journal_share_tokens',
             [
@@ -597,15 +613,16 @@ class GuidedJournal {
             ],
             ['%d', '%d', '%s', '%s', '%d']
         );
-    
+
         if ($result === false) {
             wp_send_json_error(['message' => __('Failed to generate share link', 'guided-journal')]);
         }
-    
+
         wp_send_json_success(['token' => $token]);
     }
-    
-    public function enqueue_export_script() {
+
+    public function enqueue_export_script()
+    {
         if (is_singular('journal_prompt') || strpos($_SERVER['REQUEST_URI'], '/grid') !== false) {
             wp_enqueue_script(
                 'guided-journal-export',
