@@ -75,7 +75,7 @@ $total_prompts = wp_count_posts('journal_prompt')->publish;
                                         <?php _e('Next Day', 'guided-journal'); ?>
                                     </button>
 
-                                    <div class="share-button-container"></div>
+                                    <!-- <div class="share-button-container"></div> -->
                                 </div>
 
                                 <div class="save-status">
