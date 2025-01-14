@@ -10,22 +10,22 @@
 // Prevent direct access
 defined('ABSPATH') || exit;
 
-// Add this near the top of guided-journal.php after the plugin header
-if (!defined('GUIDED_JOURNAL_PLUGIN_URL')) {
-    define('GUIDED_JOURNAL_PLUGIN_URL', plugins_url('', __FILE__));
-    error_log('GUIDED_JOURNAL_PLUGIN_URL set to: ' . GUIDED_JOURNAL_PLUGIN_URL);
+// Define plugin constants only if not already defined
+if (!defined('GUIDED_JOURNAL_VERSION')) {
+    define('GUIDED_JOURNAL_VERSION', '2.0.0');
 }
 
 if (!defined('GUIDED_JOURNAL_PLUGIN_DIR')) {
     define('GUIDED_JOURNAL_PLUGIN_DIR', plugin_dir_path(__FILE__));
-    error_log('GUIDED_JOURNAL_PLUGIN_DIR set to: ' . GUIDED_JOURNAL_PLUGIN_DIR);
 }
 
-// Define plugin constants
-define('GUIDED_JOURNAL_VERSION', '2.0.0');
-define('GUIDED_JOURNAL_PLUGIN_DIR', plugin_dir_path(__FILE__));
-define('GUIDED_JOURNAL_PLUGIN_URL', plugin_dir_url(__FILE__));
-define('GUIDED_JOURNAL_DB_VERSION', '2.0');
+if (!defined('GUIDED_JOURNAL_PLUGIN_URL')) {
+    define('GUIDED_JOURNAL_PLUGIN_URL', plugin_dir_url(__FILE__));
+}
+
+if (!defined('GUIDED_JOURNAL_DB_VERSION')) {
+    define('GUIDED_JOURNAL_DB_VERSION', '2.0');
+}
 
 // Include required files
 require_once GUIDED_JOURNAL_PLUGIN_DIR . 'includes/class-guided-journal.php';
@@ -34,31 +34,39 @@ require_once GUIDED_JOURNAL_PLUGIN_DIR . 'includes/class-guided-journal-settings
 require_once GUIDED_JOURNAL_PLUGIN_DIR . 'includes/class-journal-stats.php';
 require_once GUIDED_JOURNAL_PLUGIN_DIR . 'includes/class-guided-journal-sharing.php';
 
+// Store plugin instance
+global $guided_journal_plugin;
+
 /**
  * Initialize plugin
  */
 function guided_journal_init()
 {
-    // Initialize main plugin class
-    $plugin = new GuidedJournal\GuidedJournal();
-    $plugin->register_post_types();
-    $plugin->init();
+    global $guided_journal_plugin;
 
-    // Initialize roles
-    $roles = new GuidedJournal\JournalRoles();
-    $roles->initialize_roles();
+    // Only initialize once
+    if (!isset($guided_journal_plugin)) {
+        // Initialize main plugin class
+        $guided_journal_plugin = new GuidedJournal\GuidedJournal();
+        $guided_journal_plugin->register_post_types();
+        $guided_journal_plugin->init();
 
-    // Initialize settings
-    $settings = new GuidedJournal\GuidedJournalSettings();
+        // Initialize roles
+        $roles = new GuidedJournal\JournalRoles();
+        $roles->initialize_roles();
 
-    // Initialize sharing
-    $sharing = new GuidedJournal\GuidedJournalSharing();
+        // Initialize settings
+        $settings = new GuidedJournal\GuidedJournalSettings();
 
-    return $plugin;
+        // Initialize sharing
+        $sharing = new GuidedJournal\GuidedJournalSharing();
+    }
+
+    return $guided_journal_plugin;
 }
 
-// Start the plugin on init
-add_action('init', 'guided_journal_init', 0);
+// Start the plugin on init with priority 5 to ensure it runs before other hooks
+add_action('init', 'guided_journal_init', 5);
 
 /**
  * Plugin activation
