@@ -1,15 +1,6 @@
 jQuery(document).ready(function ($) {
-    // Add export button after the "Back to Grid" link if it doesn't exist
-    if ($('.export-entries').length === 0) {
-        $('.navigation-top').append(
-            '<button class="export-entries contents-toggle">' +
-            'Export Entries' +
-            '</button>'
-        );
-    }
-
     // Handle export button click
-    $('.export-entries').on('click', function (e) {
+    $(document).on('click', '.export-entries', function (e) {
         e.preventDefault();
         const $button = $(this);
         const originalText = $button.text();
@@ -18,7 +9,7 @@ jQuery(document).ready(function ($) {
         $button.text('Exporting...').prop('disabled', true);
 
         // Remove any existing error messages
-        $('.journal-export-error').remove();
+        $('.journal-notification').remove();
 
         $.ajax({
             url: journalAjax.ajaxurl,
@@ -34,7 +25,7 @@ jQuery(document).ready(function ($) {
                 const contentType = xhr.getResponseHeader('content-type');
 
                 // Check if response is JSON (error message)
-                if (contentType.indexOf('application/json') > -1) {
+                if (contentType && contentType.indexOf('application/json') > -1) {
                     const reader = new FileReader();
                     reader.onload = function () {
                         try {

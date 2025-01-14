@@ -207,6 +207,11 @@ class GuidedJournal
                 GUIDED_JOURNAL_VERSION,
                 true
             );
+
+            wp_localize_script('guided-journal-export', 'journalAjax', [
+                'ajaxurl' => admin_url('admin-ajax.php'),
+                'nonce' => wp_create_nonce('journal_nonce')
+            ]);
         }
     }
 
