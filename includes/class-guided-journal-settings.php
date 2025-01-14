@@ -10,14 +10,36 @@ class GuidedJournalSettings {
         'text' => '#ffffff',
         'accent' => '#991B1E',
         'container_background' => '#494949',
-        'completed' => '#2E7D32'
+        'completed' => '#2E7D32',
+        'button_background' => '#991B1E',
+        'button_text' => '#ffffff',
+        'button_hover' => '#7a1518',
+        'progress_bar_background' => '#494949',
+        'progress_bar_fill' => '#2E7D32',
     ];
 
-    private $default_fonts = [
+    private $default_typography = [
         'heading_font' => 'Montserrat',
         'body_font' => 'Open Sans',
         'heading_weight' => '600',
-        'body_weight' => '400'
+        'body_weight' => '400',
+        'heading_size' => '2rem',
+        'subheading_size' => '1.5rem',
+        'body_size' => '1rem',
+        'line_height' => '1.6',
+    ];
+
+    private $default_spacing = [
+        'card_padding' => '20px',
+        'container_padding' => '30px',
+        'grid_gap' => '20px',
+        'section_spacing' => '40px'
+    ];
+
+    private $default_borders = [
+        'card_radius' => '10px',
+        'button_radius' => '5px',
+        'progress_radius' => '10px'
     ];
 
     private $google_fonts = [
@@ -39,9 +61,7 @@ class GuidedJournalSettings {
         add_action('wp_head', [$this, 'output_custom_styles']);
         add_action('admin_enqueue_scripts', [$this, 'enqueue_admin_assets']);
         add_action('wp_enqueue_scripts', [$this, 'enqueue_google_fonts']);
-        add_action('admin_post_reset_journal_prompts', [$this, 'reset_journal_prompts']);
-        add_action('admin_post_reset_journal_entries', [$this, 'reset_journal_entries']);
-        add_action('admin_notices', [$this, 'display_reset_notices']);
+        add_action('admin_notices', [$this, 'admin_notices']);
 
         // Initialize Demo Mode
         $demo_mode_file = GUIDED_JOURNAL_PLUGIN_DIR . 'includes/class-guided-journal-demo-mode.php';
@@ -55,22 +75,22 @@ class GuidedJournalSettings {
 
     public function add_settings_page() {
         add_menu_page(
-            'Journal Settings',          // Page title
-            'Journal Settings',          // Menu title
-            'manage_options',            // Capability
-            'journal-settings',          // Menu slug
-            [$this, 'render_settings_page'], // Callback function
-            'dashicons-admin-appearance', // Icon
-            21                          // Position after Journal Prompts
+            'Journal Settings',
+            'Journal Settings',
+            'manage_options',
+            'journal-settings',
+            [$this, 'render_settings_page'],
+            'dashicons-admin-appearance',
+            21
         );
 
         add_submenu_page(
-            'journal-settings',         // Parent slug
-            'Typography & Colors',      // Page title
-            'Typography & Colors',      // Menu title
-            'manage_options',           // Capability
-            'journal-settings',         // Menu slug (same as parent to make it the default page)
-            [$this, 'render_settings_page'] // Callback function
+            'journal-settings',
+            'Typography & Colors',
+            'Typography & Colors',
+            'manage_options',
+            'journal-settings',
+            [$this, 'render_settings_page']
         );
     }
 
@@ -82,78 +102,26 @@ class GuidedJournalSettings {
             'sanitize_callback' => [$this, 'sanitize_colors']
         ]);
 
-        // Register font settings
-        register_setting('guided_journal_settings', 'guided_journal_fonts', [
+        // Register typography settings
+        register_setting('guided_journal_settings', 'guided_journal_typography', [
             'type' => 'array',
-            'default' => $this->default_fonts,
-            'sanitize_callback' => [$this, 'sanitize_fonts']
+            'default' => $this->default_typography,
+            'sanitize_callback' => [$this, 'sanitize_typography']
         ]);
 
-        // Register Demo Mode settings
-        register_setting('guided_journal_settings', 'guided_journal_demo_installed', [
-            'type' => 'boolean',
-            'default' => false,
-            'sanitize_callback' => 'rest_sanitize_boolean'
+        // Register spacing settings
+        register_setting('guided_journal_settings', 'guided_journal_spacing', [
+            'type' => 'array',
+            'default' => $this->default_spacing,
+            'sanitize_callback' => [$this, 'sanitize_spacing']
         ]);
-    }
 
-    public function sanitize_colors($input) {
-        $sanitized = [];
-        foreach ($this->default_colors as $key => $default) {
-            if (isset($input[$key])) {
-                $color = preg_replace('/[^A-Fa-f0-9]/', '', $input[$key]);
-                $sanitized[$key] = '#' . $color;
-            } else {
-                $sanitized[$key] = $default;
-            }
-        }
-        return $sanitized;
-    }
-
-    public function sanitize_fonts($input) {
-        $sanitized = [];
-        foreach ($this->default_fonts as $key => $default) {
-            if (isset($input[$key]) && !empty($input[$key])) {
-                if (strpos($key, 'weight') !== false) {
-                    $sanitized[$key] = in_array($input[$key], ['300', '400', '500', '600', '700']) ? 
-                        $input[$key] : $default;
-                } else {
-                    $sanitized[$key] = array_key_exists($input[$key], $this->google_fonts) ? 
-                        $input[$key] : $default;
-                }
-            } else {
-                $sanitized[$key] = $default;
-            }
-        }
-        return $sanitized;
-    }
-
-    public function enqueue_google_fonts() {
-        $fonts = get_option('guided_journal_fonts', $this->default_fonts);
-        $font_families = [];
-
-        // Prepare heading font
-        if (!empty($fonts['heading_font'])) {
-            $font_families[] = str_replace(' ', '+', $fonts['heading_font']) . ':' . $fonts['heading_weight'];
-        }
-
-        // Prepare body font if different from heading
-        if (!empty($fonts['body_font']) && $fonts['body_font'] !== $fonts['heading_font']) {
-            $font_families[] = str_replace(' ', '+', $fonts['body_font']) . ':' . $fonts['body_weight'];
-        }
-
-        if (!empty($font_families)) {
-            $query_args = array(
-                'family' => implode('|', $font_families),
-                'display' => 'swap',
-            );
-            wp_enqueue_style(
-                'guided-journal-fonts',
-                add_query_arg($query_args, "https://fonts.googleapis.com/css2"),
-                array(),
-                GUIDED_JOURNAL_VERSION
-            );
-        }
+        // Register border settings
+        register_setting('guided_journal_settings', 'guided_journal_borders', [
+            'type' => 'array',
+            'default' => $this->default_borders,
+            'sanitize_callback' => [$this, 'sanitize_borders']
+        ]);
     }
 
     public function enqueue_admin_assets($hook) {
@@ -169,72 +137,99 @@ class GuidedJournalSettings {
         );
 
         wp_enqueue_script(
-            'guided-journal-admin',
-            GUIDED_JOURNAL_PLUGIN_URL . 'assets/js/admin.js',
+            'guided-journal-admin-settings',
+            GUIDED_JOURNAL_PLUGIN_URL . 'assets/js/admin-settings.js',
             ['jquery'],
             GUIDED_JOURNAL_VERSION,
             true
         );
+
+        // Pass Google Fonts data to JavaScript
+        wp_localize_script('guided-journal-admin-settings', 'googleFonts', $this->google_fonts);
+    }
+
+    public function enqueue_google_fonts() {
+        $typography = get_option('guided_journal_typography', $this->default_typography);
+        $fonts_to_load = array();
+
+        // Add heading font
+        if (!empty($typography['heading_font'])) {
+            $fonts_to_load[] = array(
+                'font' => $typography['heading_font'],
+                'weight' => $typography['heading_weight']
+            );
+        }
+
+        // Add body font if different from heading
+        if (!empty($typography['body_font']) && $typography['body_font'] !== $typography['heading_font']) {
+            $fonts_to_load[] = array(
+                'font' => $typography['body_font'],
+                'weight' => $typography['body_weight']
+            );
+        }
+
+        if (!empty($fonts_to_load)) {
+            $font_families = array();
+            foreach ($fonts_to_load as $font) {
+                $font_families[] = str_replace(' ', '+', $font['font']) . ':' . $font['weight'];
+            }
+
+            $query_args = array(
+                'family' => implode('|', $font_families),
+                'display' => 'swap',
+            );
+
+            wp_enqueue_style(
+                'guided-journal-fonts',
+                add_query_arg($query_args, "https://fonts.googleapis.com/css2"),
+                array(),
+                GUIDED_JOURNAL_VERSION
+            );
+        }
     }
 
     public function output_custom_styles() {
         $colors = get_option('guided_journal_colors', $this->default_colors);
-        $fonts = get_option('guided_journal_fonts', $this->default_fonts);
+        $typography = get_option('guided_journal_typography', $this->default_typography);
+        $spacing = get_option('guided_journal_spacing', $this->default_spacing);
+        $borders = get_option('guided_journal_borders', $this->default_borders);
         ?>
         <style>
             :root {
+                /* Colors */
                 --gj-background: <?php echo esc_html($colors['background']); ?>;
                 --gj-card-background: <?php echo esc_html($colors['card_background']); ?>;
                 --gj-text: <?php echo esc_html($colors['text']); ?>;
                 --gj-accent: <?php echo esc_html($colors['accent']); ?>;
                 --gj-container-background: <?php echo esc_html($colors['container_background']); ?>;
                 --gj-completed: <?php echo esc_html($colors['completed']); ?>;
-                --gj-heading-font: '<?php echo esc_html($fonts['heading_font']); ?>', sans-serif;
-                --gj-body-font: '<?php echo esc_html($fonts['body_font']); ?>', sans-serif;
-            }
+                --gj-button-background: <?php echo esc_html($colors['button_background']); ?>;
+                --gj-button-text: <?php echo esc_html($colors['button_text']); ?>;
+                --gj-button-hover: <?php echo esc_html($colors['button_hover']); ?>;
+                --gj-progress-background: <?php echo esc_html($colors['progress_bar_background']); ?>;
+                --gj-progress-fill: <?php echo esc_html($colors['progress_bar_fill']); ?>;
 
-            .journal-container h1,
-            .journal-container h2,
-            .prompt-grid .day-number,
-            .stat-value {
-                font-family: var(--gj-heading-font);
-                font-weight: <?php echo esc_html($fonts['heading_weight']); ?>;
-            }
+                /* Typography */
+                --gj-heading-font: "<?php echo esc_html($typography['heading_font']); ?>", sans-serif;
+                --gj-body-font: "<?php echo esc_html($typography['body_font']); ?>", sans-serif;
+                --gj-heading-size: <?php echo esc_html($typography['heading_size']); ?>;
+                --gj-subheading-size: <?php echo esc_html($typography['subheading_size']); ?>;
+                --gj-body-size: <?php echo esc_html($typography['body_size']); ?>;
+                --gj-line-height: <?php echo esc_html($typography['line_height']); ?>;
 
-            body,
-            .prompt,
-            .stat-label,
-            .wp-editor-area {
-                font-family: var(--gj-body-font);
-                font-weight: <?php echo esc_html($fonts['body_weight']); ?>;
+                /* Spacing */
+                --gj-card-padding: <?php echo esc_html($spacing['card_padding']); ?>;
+                --gj-container-padding: <?php echo esc_html($spacing['container_padding']); ?>;
+                --gj-grid-gap: <?php echo esc_html($spacing['grid_gap']); ?>;
+                --gj-section-spacing: <?php echo esc_html($spacing['section_spacing']); ?>;
+
+                /* Borders */
+                --gj-card-radius: <?php echo esc_html($borders['card_radius']); ?>;
+                --gj-button-radius: <?php echo esc_html($borders['button_radius']); ?>;
+                --gj-progress-radius: <?php echo esc_html($borders['progress_radius']); ?>;
             }
         </style>
         <?php
-    }
-
-    public function display_reset_notices() {
-        if (!isset($_GET['page']) || $_GET['page'] !== 'journal-settings') {
-            return;
-        }
-
-        if (isset($_GET['reset'])) {
-            $type = sanitize_text_field($_GET['reset']);
-            $message = '';
-            $class = 'notice notice-success';
-
-            switch ($type) {
-                case 'prompts':
-                    $message = 'All journal prompts have been successfully deleted.';
-                    break;
-                case 'entries':
-                    $message = 'All journal entries have been successfully cleared.';
-                    break;
-            }
-
-            if ($message) {
-                printf('<div class="%1$s"><p>%2$s</p></div>', esc_attr($class), esc_html($message));
-            }
-        }
     }
 
     public function render_settings_page() {
@@ -243,237 +238,294 @@ class GuidedJournalSettings {
         }
 
         $colors = get_option('guided_journal_colors', $this->default_colors);
-        $fonts = get_option('guided_journal_fonts', $this->default_fonts);
-        ?>
-        <div class="wrap">
-            <h1><?php echo esc_html(get_admin_page_title()); ?></h1>
+        $typography = get_option('guided_journal_typography', $this->default_typography);
+        $spacing = get_option('guided_journal_spacing', $this->default_spacing);
+        $borders = get_option('guided_journal_borders', $this->default_borders);
 
-            <form action="options.php" method="post">
-                <?php settings_fields('guided_journal_settings'); ?>
+        include GUIDED_JOURNAL_PLUGIN_DIR . 'templates/admin/settings-page.php';
+    }
 
-                <!-- Color Settings Section -->
-                <div class="settings-section">
-                    <h2>Colors</h2>
-                    <table class="form-table">
-                        <?php foreach ($this->default_colors as $key => $default): ?>
-                            <tr>
-                                <th scope="row">
-                                    <label for="<?php echo esc_attr($key); ?>">
-                                        <?php echo esc_html(ucwords(str_replace('_', ' ', $key))); ?>
-                                    </label>
-                                </th>
-                                <td>
-                                    <div class="color-input-group">
-                                        <input type="color" 
-                                               id="<?php echo esc_attr($key); ?>"
-                                               name="guided_journal_colors[<?php echo esc_attr($key); ?>]"
-                                               value="<?php echo esc_attr($colors[$key]); ?>"
-                                        >
-                                        <input type="text" 
-                                               class="color-hex"
-                                               value="<?php echo esc_attr($colors[$key]); ?>"
-                                               data-color-input="<?php echo esc_attr($key); ?>"
-                                        >
-                                        <button type="button" 
-                                                class="button button-secondary reset-color" 
-                                                data-default="<?php echo esc_attr($default); ?>"
-                                                data-target="<?php echo esc_attr($key); ?>"
-                                        >
-                                            Reset
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                        <?php endforeach; ?>
-                    </table>
-                </div>
+    /**
+     * Sanitize color settings
+     */
+    public function sanitize_colors($input) {
+        $sanitized = [];
+        foreach ($this->default_colors as $key => $default) {
+            if (isset($input[$key])) {
+                $color = sanitize_hex_color($input[$key]);
+                $sanitized[$key] = $color ? $color : $default;
+            } else {
+                $sanitized[$key] = $default;
+            }
+        }
+        return $sanitized;
+    }
 
-                <!-- Font Settings Section -->
-                <div class="settings-section">
-                    <h2>Typography</h2>
-                    <table class="form-table">
-                        <tr>
-                            <th scope="row">
-                                <label for="heading_font">Heading Font</label>
-                            </th>
-                            <td>
-                                <select id="heading_font" name="guided_journal_fonts[heading_font]">
-                                    <?php foreach ($this->google_fonts as $font => $weights): ?>
-                                        <option value="<?php echo esc_attr($font); ?>" 
-                                                <?php selected($fonts['heading_font'], $font); ?>
-                                                style="font-family: '<?php echo esc_attr($font); ?>'">
-                                            <?php echo esc_html($font); ?>
-                                        </option>
-                                    <?php endforeach; ?>
-                                </select>
-                                <select name="guided_journal_fonts[heading_weight]">
-                                    <?php 
-                                    $available_weights = $this->google_fonts[$fonts['heading_font']];
-                                    foreach ($available_weights as $weight): 
-                                    ?>
-                                        <option value="<?php echo esc_attr($weight); ?>"
-                                                <?php selected($fonts['heading_weight'], $weight); ?>>
-                                            <?php echo esc_html($weight); ?>
-                                        </option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </td>
-                        </tr>
-                        <tr>
-                            <th scope="row">
-                                <label for="body_font">Body Font</label>
-                            </th>
-                            <td>
-                                <select id="body_font" name="guided_journal_fonts[body_font]">
-                                    <?php foreach ($this->google_fonts as $font => $weights): ?>
-                                        <option value="<?php echo esc_attr($font); ?>"
-                                                <?php selected($fonts['body_font'], $font); ?>
-                                                style="font-family: '<?php echo esc_attr($font); ?>'">
-                                            <?php echo esc_html($font); ?>
-                                        </option>
-                                    <?php endforeach; ?>
-                                </select>
-                                <select name="guided_journal_fonts[body_weight]">
-                                    <?php 
-                                    $available_weights = $this->google_fonts[$fonts['body_font']];
-                                    foreach ($available_weights as $weight): 
-                                    ?>
-                                        <option value="<?php echo esc_attr($weight); ?>"
-                                                <?php selected($fonts['body_weight'], $weight); ?>>
-                                            <?php echo esc_html($weight); ?>
-                                        </option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </td>
-                        </tr>
-                    </table>
-                </div>
+    /**
+     * Sanitize typography settings
+     */
+    public function sanitize_typography($input) {
+        $sanitized = [];
+        
+        // Sanitize fonts
+        $sanitized['heading_font'] = isset($input['heading_font']) && array_key_exists($input['heading_font'], $this->google_fonts) 
+            ? $input['heading_font'] 
+            : $this->default_typography['heading_font'];
+        
+        $sanitized['body_font'] = isset($input['body_font']) && array_key_exists($input['body_font'], $this->google_fonts) 
+            ? $input['body_font'] 
+            : $this->default_typography['body_font'];
 
-                <?php submit_button('Save Settings'); ?>
-            </form>
+        // Sanitize weights
+        $heading_weights = $this->google_fonts[$sanitized['heading_font']];
+        $sanitized['heading_weight'] = isset($input['heading_weight']) && in_array($input['heading_weight'], $heading_weights)
+            ? $input['heading_weight']
+            : $this->default_typography['heading_weight'];
 
-            <!-- Demo Mode Section -->
-            <?php if (isset($this->demo_mode)): ?>
-            <div class="settings-section">
-                <?php $this->demo_mode->render_demo_section(); ?>
-            </div>
-            <?php endif; ?>
+        $body_weights = $this->google_fonts[$sanitized['body_font']];
+        $sanitized['body_weight'] = isset($input['body_weight']) && in_array($input['body_weight'], $body_weights)
+            ? $input['body_weight']
+            : $this->default_typography['body_weight'];
 
-            <!-- Reset Options Section -->
-            <div class="settings-section">
-                <h2>Reset Options</h2>
-                <p class="description">Use these options with caution. These actions cannot be undone.</p>
+        // Sanitize sizes and line height
+        $sanitized['heading_size'] = isset($input['heading_size']) ? $this->sanitize_css_value($input['heading_size'], $this->default_typography['heading_size']) : $this->default_typography['heading_size'];
+        $sanitized['subheading_size'] = isset($input['subheading_size']) ? $this->sanitize_css_value($input['subheading_size'], $this->default_typography['subheading_size']) : $this->default_typography['subheading_size'];
+        $sanitized['body_size'] = isset($input['body_size']) ? $this->sanitize_css_value($input['body_size'], $this->default_typography['body_size']) : $this->default_typography['body_size'];
+        $sanitized['line_height'] = isset($input['line_height']) ? $this->sanitize_css_value($input['line_height'], $this->default_typography['line_height']) : $this->default_typography['line_height'];
 
-                <div class="reset-options">
-                    <form action="<?php echo admin_url('admin-post.php'); ?>" method="post"
-                        style="display: inline-block; margin-right: 20px;">
-                        <?php wp_nonce_field('reset_journal_prompts_nonce', 'reset_prompts_nonce'); ?>
-                        <input type="hidden" name="action" value="reset_journal_prompts">
-                        <input type="submit" class="button button-secondary" value="Reset All Prompts"
-                            onclick="return confirm('Are you sure you want to delete all journal prompts? This action cannot be undone.');">
-                    </form>
+        return $sanitized;
+    }
 
-                    <form action="<?php echo admin_url('admin-post.php'); ?>" method="post" style="display: inline-block;">
-                        <?php wp_nonce_field('reset_journal_entries_nonce', 'reset_entries_nonce'); ?>
-                        <input type="hidden" name="action" value="reset_journal_entries">
-                        <input type="submit" class="button button-secondary" value="Reset All Journal Entries"
-                            onclick="return confirm('Are you sure you want to delete all journal entries? This action cannot be undone.');">
-                    </form>
-                </div>
+    /**
+     * Sanitize spacing settings
+     */
+    public function sanitize_spacing($input) {
+        $sanitized = [];
+        foreach ($this->default_spacing as $key => $default) {
+            $sanitized[$key] = isset($input[$key]) ? $this->sanitize_css_value($input[$key], $default) : $default;
+        }
+        return $sanitized;
+    }
+
+    /**
+     * Sanitize border settings
+     */
+    public function sanitize_borders($input) {
+        $sanitized = [];
+        foreach ($this->default_borders as $key => $default) {
+            $sanitized[$key] = isset($input[$key]) ? $this->sanitize_css_value($input[$key], $default) : $default;
+        }
+        return $sanitized;
+    }
+
+    /**
+     * Validate CSS value (px, rem, em, %)
+     */
+    private function sanitize_css_value($value, $default) {
+        // Remove any whitespace
+        $value = trim($value);
+        
+        // Check if empty
+        if (empty($value)) {
+            return $default;
+        }
+
+        // Validate numeric values with units
+        if (preg_match('/^(\d*\.?\d+)(px|rem|em|%|vh|vw)$/', $value)) {
+            return $value;
+        }
+
+// Validate unitless values (like line-height)
+if (preg_match('/^\d*\.?\d+$/', $value)) {
+    return $value;
+}
+
+return $default;
+}
+
+private function render_color_input($key, $label, $colors) {
+?>
+<div class="color-input-group">
+    <label><?php echo esc_html($label); ?></label>
+    <div class="color-inputs">
+        <input type="color" 
+               name="guided_journal_colors[<?php echo esc_attr($key); ?>]" 
+               value="<?php echo esc_attr($colors[$key]); ?>">
+        <input type="text" 
+               class="color-hex-value"
+               value="<?php echo esc_attr($colors[$key]); ?>"
+               data-color-input="<?php echo esc_attr($key); ?>">
+        <button type="button" 
+                class="button button-secondary reset-color" 
+                data-default="<?php echo esc_attr($this->default_colors[$key]); ?>"
+                data-target="<?php echo esc_attr($key); ?>">
+            <?php _e('Reset', 'guided-journal'); ?>
+        </button>
+    </div>
+</div>
+<?php
+}
+
+public function admin_notices() {
+if (isset($_GET['settings-updated']) && $_GET['settings-updated']) {
+    ?>
+    <div class="notice notice-success is-dismissible">
+        <p><?php _e('Journal style settings updated successfully.', 'guided-journal'); ?></p>
+    </div>
+    <?php
+}
+}
+
+public function render_preview_section() {
+?>
+<div class="settings-section preview-section">
+    <h2><?php _e('Preview', 'guided-journal'); ?></h2>
+    <div class="style-preview">
+        <div class="preview-card">
+            <h3><?php _e('Sample Card', 'guided-journal'); ?></h3>
+            <p><?php _e('This is how your cards and text will look with the current settings.', 'guided-journal'); ?></p>
+            <button class="preview-button"><?php _e('Sample Button', 'guided-journal'); ?></button>
+            <div class="preview-progress">
+                <div class="preview-progress-bar" style="width: 75%"></div>
             </div>
         </div>
+    </div>
+</div>
+<?php
+}
 
-        <script>
-        jQuery(document).ready(function($) {
-            // Load Google Fonts
-            function loadGoogleFont(font) {
-                const link = document.createElement('link');
-                link.href = `https://fonts.googleapis.com/css2?family=${font.replace(' ', '+')}:wght@400;700&display=swap`;
-                link.rel = 'stylesheet';
-                document.head.appendChild(link);
-            }
+public function render_typography_section($typography) {
+?>
+<div class="settings-section">
+    <h2><?php _e('Typography', 'guided-journal'); ?></h2>
+    <table class="form-table">
+        <tr>
+            <th scope="row"><?php _e('Heading Font', 'guided-journal'); ?></th>
+            <td>
+                <select name="guided_journal_typography[heading_font]">
+                    <?php foreach ($this->google_fonts as $font => $weights): ?>
+                        <option value="<?php echo esc_attr($font); ?>" 
+                                <?php selected($typography['heading_font'], $font); ?>>
+                            <?php echo esc_html($font); ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+                <select name="guided_journal_typography[heading_weight]">
+                    <?php foreach ($this->google_fonts[$typography['heading_font']] as $weight): ?>
+                        <option value="<?php echo esc_attr($weight); ?>"
+                                <?php selected($typography['heading_weight'], $weight); ?>>
+                            <?php echo esc_html($weight); ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+                <input type="text" 
+                       name="guided_journal_typography[heading_size]" 
+                       value="<?php echo esc_attr($typography['heading_size']); ?>"
+                       class="small-text"
+                       placeholder="2rem">
+                <p class="description"><?php _e('Font size should include units (px, rem, em)', 'guided-journal'); ?></p>
+            </td>
+        </tr>
+        <tr>
+            <th scope="row"><?php _e('Body Font', 'guided-journal'); ?></th>
+            <td>
+                <select name="guided_journal_typography[body_font]">
+                    <?php foreach ($this->google_fonts as $font => $weights): ?>
+                        <option value="<?php echo esc_attr($font); ?>"
+                                <?php selected($typography['body_font'], $font); ?>>
+                            <?php echo esc_html($font); ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+                <select name="guided_journal_typography[body_weight]">
+                    <?php foreach ($this->google_fonts[$typography['body_font']] as $weight): ?>
+                        <option value="<?php echo esc_attr($weight); ?>"
+                                <?php selected($typography['body_weight'], $weight); ?>>
+                            <?php echo esc_html($weight); ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+                <input type="text" 
+                       name="guided_journal_typography[body_size]" 
+                       value="<?php echo esc_attr($typography['body_size']); ?>"
+                       class="small-text"
+                       placeholder="1rem">
+            </td>
+        </tr>
+        <tr>
+            <th scope="row"><?php _e('Line Height', 'guided-journal'); ?></th>
+            <td>
+                <input type="text" 
+                       name="guided_journal_typography[line_height]" 
+                       value="<?php echo esc_attr($typography['line_height']); ?>"
+                       class="small-text"
+                       placeholder="1.6">
+                <p class="description"><?php _e('Line height can be unitless (1.6) or include units', 'guided-journal'); ?></p>
+            </td>
+        </tr>
+    </table>
+</div>
+<?php
+}
 
-            // Initialize font previews
-            $('#heading_font, #body_font').each(function() {
-                const font = $(this).val();
-                loadGoogleFont(font);
-                $(this).css('font-family', `"${font}", sans-serif`);
-            });
-
-            // Handle font changes
-            $('#heading_font, #body_font').on('change', function() {
-                const font = $(this).val();
-                loadGoogleFont(font);
-                $(this).css('font-family', `"${font}", sans-serif`);
-            });
-
-            // Handle color resets
-            $('.reset-color').on('click', function() {
-                const defaultColor = $(this).data('default');
-                const targetId = $(this).data('target');
-                $(`#${targetId}`).val(defaultColor);
-                $(`input[data-color-input="${targetId}"]`).val(defaultColor);
-            });
-
-            // Sync color inputs
-            $('input[type="color"]').on('input', function() {
-                const value = $(this).val();
-                $(`input[data-color-input="${$(this).attr('id')}"]`).val(value);
-            });
-
-            $('.color-hex').on('input', function() {
-                const value = $(this).val();
-                const colorId = $(this).data('color-input');
-                $(`#${colorId}`).val(value);
-            });
-        });
-        </script>
+public function render_spacing_section($spacing) {
+?>
+<div class="settings-section">
+    <h2><?php _e('Spacing', 'guided-journal'); ?></h2>
+    <table class="form-table">
         <?php
-    }
+        $spacing_fields = [
+            'card_padding' => __('Card Padding', 'guided-journal'),
+            'container_padding' => __('Container Padding', 'guided-journal'),
+            'grid_gap' => __('Grid Gap', 'guided-journal'),
+            'section_spacing' => __('Section Spacing', 'guided-journal')
+        ];
+        foreach ($spacing_fields as $key => $label):
+        ?>
+        <tr>
+            <th scope="row"><?php echo esc_html($label); ?></th>
+            <td>
+                <input type="text" 
+                       name="guided_journal_spacing[<?php echo esc_attr($key); ?>]" 
+                       value="<?php echo esc_attr($spacing[$key]); ?>"
+                       class="regular-text"
+                       placeholder="<?php echo esc_attr($this->default_spacing[$key]); ?>">
+                <p class="description"><?php _e('Include units (px, rem, em)', 'guided-journal'); ?></p>
+            </td>
+        </tr>
+        <?php endforeach; ?>
+    </table>
+</div>
+<?php
+}
 
-    public function reset_journal_prompts() {
-        if (!current_user_can('manage_options') || !check_admin_referer('reset_journal_prompts_nonce', 'reset_prompts_nonce')) {
-            wp_die('Unauthorized access');
-        }
-
-        $args = array(
-            'post_type' => 'journal_prompt',
-            'posts_per_page' => -1,
-            'post_status' => 'any',
-        );
-
-        $prompts = get_posts($args);
-
-        foreach ($prompts as $prompt) {
-            wp_delete_post($prompt->ID, true);
-        }
-
-        wp_redirect(add_query_arg(
-            array('page' => 'journal-settings', 'reset' => 'prompts'),
-            admin_url('admin.php')
-        ));
-        exit;
-    }
-
-    public function reset_journal_entries() {
-        if (!current_user_can('manage_options') || !check_admin_referer('reset_journal_entries_nonce', 'reset_entries_nonce')) {
-            wp_die('Unauthorized access');
-        }
-
-        global $wpdb;
-        $table_name = $wpdb->prefix . 'journal_entries';
-        $wpdb->query("TRUNCATE TABLE $table_name");
-
-        // Also truncate the journal stats table if it exists
-        $stats_table = $wpdb->prefix . 'journal_stats';
-        if($wpdb->get_var("SHOW TABLES LIKE '$stats_table'") == $stats_table) {
-            $wpdb->query("TRUNCATE TABLE $stats_table");
-        }
-
-        wp_redirect(add_query_arg(
-            array('page' => 'journal-settings', 'reset' => 'entries'),
-            admin_url('admin.php')
-        ));
-        exit;
-    }
+public function render_borders_section($borders) {
+?>
+<div class="settings-section">
+    <h2><?php _e('Borders & Radius', 'guided-journal'); ?></h2>
+    <table class="form-table">
+        <?php
+        $border_fields = [
+            'card_radius' => __('Card Border Radius', 'guided-journal'),
+            'button_radius' => __('Button Border Radius', 'guided-journal'),
+            'progress_radius' => __('Progress Bar Border Radius', 'guided-journal')
+        ];
+        foreach ($border_fields as $key => $label):
+        ?>
+        <tr>
+            <th scope="row"><?php echo esc_html($label); ?></th>
+            <td>
+                <input type="text" 
+                       name="guided_journal_borders[<?php echo esc_attr($key); ?>]" 
+                       value="<?php echo esc_attr($borders[$key]); ?>"
+                       class="regular-text"
+                       placeholder="<?php echo esc_attr($this->default_borders[$key]); ?>">
+                <p class="description"><?php _e('Include units (px, rem, em)', 'guided-journal'); ?></p>
+            </td>
+        </tr>
+        <?php endforeach; ?>
+    </table>
+</div>
+<?php
+}
 }
