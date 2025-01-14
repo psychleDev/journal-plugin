@@ -1,4 +1,5 @@
 <?php
+namespace GuidedJournal;
 class GuidedJournalDemoMode
 {
     private $prompts = [
