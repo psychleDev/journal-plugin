@@ -43,6 +43,8 @@ class GuidedJournal
 
     public function register_post_types()
     {
+        error_log('Registering post types');
+
         $args = [
             'labels' => [
                 'name' => __('Journal Prompts', 'guided-journal'),
@@ -82,6 +84,17 @@ class GuidedJournal
         ];
 
         register_post_type('journal_prompt', $args);
+
+        // Add debug logging
+        error_log('Post types registered: ' . implode(', ', get_post_types(['public' => true])));
+        error_log('Journal prompt post type exists: ' . (post_type_exists('journal_prompt') ? 'yes' : 'no'));
+
+        // Force flush rewrite rules if needed
+        if (get_option('guided_journal_flush_rewrite')) {
+            error_log('Flushing rewrite rules');
+            flush_rewrite_rules();
+            delete_option('guided_journal_flush_rewrite');
+        }
     }
 
     public function load_journal_templates($template)
