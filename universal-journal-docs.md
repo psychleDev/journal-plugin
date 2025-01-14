@@ -290,6 +290,114 @@ Common issues and solutions:
    - Review permission settings
    - Clear browser cookies
 
+# Export Feature Documentation
+
+## Overview
+The Guided Journal plugin includes a robust export feature that allows users to download their journal entries in CSV format. This feature maintains privacy by only allowing users to export their own entries.
+
+## Features
+- Export all journal entries to CSV
+- UTF-8 encoding with BOM for Excel compatibility
+- Includes prompts, entries, word counts, and timestamps
+- Sanitized filenames and content
+- Progress indicator during export
+- Error handling and user feedback
+- Browser compatibility (including IE11 and Edge)
+
+## Technical Implementation
+
+### Frontend
+The export feature is implemented using:
+- AJAX for asynchronous file download
+- Blob handling for large files
+- Progress indicators
+- Error notifications
+- Cross-browser compatibility measures
+
+### Backend
+The export process:
+1. Validates user authentication and nonce
+2. Retrieves entries with associated prompts and stats
+3. Generates CSV with proper encoding
+4. Handles memory efficiently for large exports
+5. Provides appropriate headers for file download
+
+### Data Format
+The exported CSV includes:
+- Day number
+- Original prompt
+- Entry text (stripped of HTML)
+- Word count
+- Creation date and time
+
+### Security Measures
+- Nonce verification
+- User authentication
+- Content sanitization
+- Safe file handling
+- Privacy protection
+
+## Usage
+
+### For Users
+1. Navigate to the journal grid or entry view
+2. Click the "Export Entries" button
+3. Choose save location when prompted
+4. Open the CSV file with a spreadsheet application
+
+### For Developers
+The export functionality can be extended using these filters:
+
+```php
+// Modify export data
+add_filter('guided_journal_export_data', function($entries, $user_id) {
+    // Modify $entries array
+    return $entries;
+}, 10, 2);
+
+// Customize CSV headers
+add_filter('guided_journal_export_headers', function($headers) {
+    // Modify $headers array
+    return $headers;
+});
+```
+
+## Troubleshooting
+
+### Common Issues
+1. **Download doesn't start**
+   - Check browser download settings
+   - Verify user permissions
+   - Clear browser cache
+
+2. **Corrupted CSV**
+   - Ensure proper encoding (UTF-8)
+   - Check for special characters
+   - Verify Excel compatibility
+
+3. **Missing Data**
+   - Confirm entries exist
+   - Check database connectivity
+   - Verify query permissions
+
+### Error Messages
+- "No entries found to export": User has no journal entries
+- "Invalid security token": Session expired or invalid nonce
+- "Please log in to export entries": User authentication required
+
+## Best Practices
+1. Regular exports for backup
+2. Check exported data integrity
+3. Monitor large exports
+4. Handle sensitive information appropriately
+
+## Future Enhancements
+- Multiple export formats (PDF, DOC)
+- Selective entry export
+- Progress tracking for large exports
+- Advanced filtering options
+- Custom export templates
+
 ### Support and Resources
 
 - Plugin Homepage: [URL]
