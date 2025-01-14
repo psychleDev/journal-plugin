@@ -4,7 +4,7 @@
  * Description: A customizable guided journal system for WordPress with writing stats and progress tracking
  * Version: 2.0
  * Author: Steadfast Creative Solutions LLC.
- * Text Domain: guided-journal
+ * Text Domain: universal-guided-journal
  */
 
 // Prevent direct access
